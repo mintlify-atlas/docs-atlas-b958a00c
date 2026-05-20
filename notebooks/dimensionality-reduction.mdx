@@ -1,0 +1,111 @@
+---
+title: "Chapter 8: Dimensionality Reduction"
+description: "Reducing the number of features with PCA, Kernel PCA, Locally Linear Embedding, and t-SNE, including explained variance, incremental PCA, and manifold learning concepts."
+---
+
+Chapter 8 tackles the curse of dimensionality—the way that high-dimensional spaces make distance-based and gradient-based methods increasingly unreliable. You will use Principal Component Analysis (PCA) to compress data to its most informative dimensions, explore kernel and incremental variants for non-linear and large-scale problems, and visualise complex datasets with Locally Linear Embedding (LLE) and t-SNE.
+
+## What you'll learn
+
+- The curse of dimensionality and why it matters
+- Principal Component Analysis (PCA): principal components, explained variance ratio, and choosing the right number of components
+- Projecting to 2D and reconstructing from the compressed representation
+- Choosing the number of components by setting a minimum explained variance (e.g., 95%)
+- Incremental PCA (`IncrementalPCA`) for datasets that do not fit in memory
+- Randomised PCA for faster approximation
+- Kernel PCA (`KernelPCA`) for non-linear dimensionality reduction
+- Locally Linear Embedding (LLE) and the manifold assumption
+- t-SNE for 2D/3D visualisation of high-dimensional data
+
+## Key concepts
+
+**PCA and explained variance.** PCA finds the directions (principal components) of greatest variance in the data. Projecting onto the top *k* principal components retains as much variance as possible in *k* dimensions. The `explained_variance_ratio_` attribute shows what fraction of total variance each component captures.
+
+**Incremental and randomised PCA.** Standard PCA requires the full dataset in memory. `IncrementalPCA` processes the data in mini-batches, making it suitable for large datasets. Randomised PCA uses a stochastic algorithm that is substantially faster than exact SVD for large matrices while producing very close approximations.
+
+**Kernel PCA.** When data lies on a non-linear manifold, linear PCA fails to unroll it. `KernelPCA` implicitly maps data to a high-dimensional space using a kernel function (RBF, polynomial, etc.) and then applies PCA in that space, enabling non-linear dimensionality reduction.
+
+**LLE and t-SNE.** Locally Linear Embedding preserves local geometry by expressing each instance as a linear combination of its nearest neighbours, then finding a low-dimensional embedding that respects those weights. t-SNE minimises divergence between pairwise similarity distributions in high- and low-dimensional spaces; it excels at creating striking 2D visualisations of clustered data but is not suitable for projecting new instances.
+
+## Code examples
+
+**Basic PCA fit and transform:**
+
+```python
+from sklearn.decomposition import PCA
+
+pca = PCA(n_components=2)
+X2D = pca.fit_transform(X)  # dataset reduced to 2D
+```
+
+**Inspecting explained variance:**
+
+```python
+pca.explained_variance_ratio_
+# array([0.7578477 , 0.15186921])
+# First component explains ~76%, second ~15% of variance
+```
+
+**Choosing the number of components automatically:**
+
+```python
+pca = PCA(n_components=0.95)  # retain 95% of variance
+pca.fit(X_train)
+print(pca.n_components_)  # number of components selected
+
+X_reduced = pca.fit_transform(X_train)
+```
+
+**Incremental PCA for large datasets:**
+
+```python
+from sklearn.decomposition import IncrementalPCA
+
+n_batches = 100
+inc_pca = IncrementalPCA(n_components=154)
+for X_batch in np.array_split(X_train, n_batches):
+    inc_pca.partial_fit(X_batch)
+
+X_reduced = inc_pca.transform(X_train)
+```
+
+**Kernel PCA (RBF kernel):**
+
+```python
+from sklearn.decomposition import KernelPCA
+
+rbf_pca = KernelPCA(n_components=2, kernel="rbf", gamma=0.04, random_state=42)
+X_reduced = rbf_pca.fit_transform(X_swiss)
+```
+
+**t-SNE visualisation:**
+
+```python
+from sklearn.manifold import TSNE
+
+tsne = TSNE(n_components=2, init="random", learning_rate="auto",
+            random_state=42)
+X_reduced = tsne.fit_transform(X_sample)
+```
+
+<Note>
+t-SNE is non-parametric and stochastic. It does not support `transform` for new instances; you must refit the model on any new data. Use it for visualisation, not as a preprocessing step for a downstream model.
+</Note>
+
+## Running this notebook
+
+<Steps>
+  <Step title="Open in Colab">
+    [Open in Colab](https://colab.research.google.com/github/ageron/handson-ml3/blob/main/08_dimensionality_reduction.ipynb)
+  </Step>
+  <Step title="Download MNIST for later sections">
+    The second half of the notebook applies PCA and LLE to MNIST. The dataset is fetched automatically via `fetch_openml` when the relevant cells are run.
+  </Step>
+  <Step title="Run cells in order">
+    The 3D plotting cells require `matplotlib`'s `mpl_toolkits.mplot3d` which is included in the standard distribution.
+  </Step>
+</Steps>
+
+## Exercises
+
+The exercises ask you to train a `RandomForestClassifier` on reduced-dimension MNIST features and compare accuracy and training time with the full-feature classifier, and to apply LLE and compare it with t-SNE on a toy 3D dataset. Solutions are in the notebook.

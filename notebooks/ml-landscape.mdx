@@ -1,0 +1,90 @@
+---
+title: "Chapter 1: The Machine Learning Landscape"
+description: "An introduction to machine learning concepts including supervised, unsupervised, and reinforcement learning, batch vs online learning, and the main challenges every practitioner faces."
+---
+
+Chapter 1 sets the stage for the entire book by mapping out the machine learning landscape. Rather than diving into code immediately, it builds the conceptual vocabulary you need to understand, compare, and evaluate ML systems. You will learn how to categorize algorithms, assess the quality of a training set, and identify the failure modes that cause models to underperform.
+
+## What you'll learn
+
+- The three major learning paradigms: supervised, unsupervised, and reinforcement learning
+- The difference between batch (offline) learning and online (incremental) learning
+- Instance-based learning versus model-based learning
+- The main challenges of ML: insufficient data, non-representative data, poor-quality data, irrelevant features, overfitting, and underfitting
+- How to frame a machine learning problem and select an appropriate performance measure
+- A first end-to-end example predicting life satisfaction from GDP per capita
+
+## Key concepts
+
+**Types of machine learning.** Supervised learning algorithms train on labeled data—each training example pairs an input with a desired output. Classification (predicting a category) and regression (predicting a continuous value) are both supervised tasks. Unsupervised learning finds hidden structure in unlabeled data: clustering groups similar instances together, anomaly detection identifies unusual examples, and dimensionality reduction compresses data while preserving structure. Reinforcement learning trains an agent to maximize cumulative reward through environment interaction.
+
+**Batch versus online learning.** A batch (offline) learning system trains on the full dataset and is then deployed without further updates. When new data arrives the model must be retrained from scratch. Online learning systems, by contrast, update the model incrementally as each new data point—or small mini-batch—arrives. Online learning is well-suited to continuous data streams and situations where retraining from scratch would be prohibitively expensive.
+
+**Instance-based versus model-based learning.** Instance-based learners (such as k-nearest neighbors) generalize by comparing new inputs to stored training examples using a similarity measure. Model-based learners (such as linear regression) fit a parametric function to the training data and then use that function to make predictions on new inputs. Model-based learning is typically faster at inference time because no search over stored examples is required.
+
+**Overfitting and underfitting.** Overfitting occurs when a model captures noise in the training data rather than the true underlying pattern; the model performs well on training examples but poorly on unseen data. Regularization—adding a penalty on model complexity—is the primary tool for preventing overfitting. Underfitting occurs when the model is too simple to capture the structure of the data; the remedy is a more powerful model, better features, or less regularization.
+
+## Code examples
+
+The first concrete example in Chapter 1 loads life-satisfaction data for several countries and fits a linear model to predict satisfaction from GDP per capita:
+
+```python
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from sklearn.linear_model import LinearRegression
+
+# Download and prepare the data
+data_root = "https://github.com/ageron/data/raw/main/"
+lifesat = pd.read_csv(data_root + "lifesat/lifesat.csv")
+X = lifesat[["GDP per capita (USD)"]].values
+y = lifesat[["Life satisfaction"]].values
+
+# Visualize the data
+lifesat.plot(kind='scatter', grid=True,
+             x="GDP per capita (USD)", y="Life satisfaction")
+plt.axis([23_500, 62_500, 4, 9])
+plt.show()
+
+# Select a linear model
+model = LinearRegression()
+
+# Train the model
+model.fit(X, y)
+
+# Make a prediction for Cyprus
+X_new = [[37_655.2]]  # Cyprus' GDP per capita in 2020
+print(model.predict(X_new))  # outputs [[6.30165767]]
+```
+
+Swapping the model for k-nearest neighbors requires only two lines to change:
+
+```python
+from sklearn.neighbors import KNeighborsRegressor
+
+model = KNeighborsRegressor(n_neighbors=3)
+```
+
+<Tip>
+Chapter 1 is primarily conceptual. The notebook generates the `lifesat.csv` file used in the example above and produces several of the book's figures. The real hands-on coding starts in Chapter 2.
+</Tip>
+
+## Running this notebook
+
+<Steps>
+  <Step title="Open in Colab">
+    Click the badge below or navigate directly to the notebook:
+
+    [Open in Colab](https://colab.research.google.com/github/ageron/handson-ml3/blob/main/01_the_machine_learning_landscape.ipynb)
+  </Step>
+  <Step title="Run the setup cells">
+    The notebook checks that Python ≥ 3.7 and Scikit-Learn ≥ 1.0.1 are installed, then sets matplotlib defaults.
+  </Step>
+  <Step title="Work through the examples">
+    Run the cells in order. The notebook generates several figures from the book and produces the `lifesat.csv` dataset used in Code Example 1-1.
+  </Step>
+</Steps>
+
+## Exercises
+
+Chapter 1 includes five exercises at the end of the notebook. They ask you to apply the conceptual framework to new scenarios—for example, classifying an ML task as supervised or unsupervised, and identifying likely challenges with a given dataset.

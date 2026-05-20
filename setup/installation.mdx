@@ -1,0 +1,173 @@
+---
+title: "Set up a local environment for the ML notebooks"
+description: "Full local setup walkthrough using Anaconda and conda — covers Python 3.10, the homl3 environment, Jupyter kernel registration, and optional NVIDIA GPU support."
+---
+
+This guide walks through the complete process of running the Hands-On ML notebooks on your own machine. The setup uses [Anaconda](https://www.anaconda.com/products/distribution) (or [Miniconda](https://docs.conda.io/en/latest/miniconda.html)) to create an isolated `homl3` conda environment with Python 3.10 and every library the notebooks require. If you just want to try a few notebooks without installing anything, see the [cloud options](/setup/cloud) instead.
+
+## Installation walkthrough
+
+<Steps>
+  <Step title="Install git">
+    Open a terminal and type `git` to check whether it is already installed. If not, download it from [git-scm.com](https://git-scm.com/downloads).
+
+    On **Windows**, after installation you should use the Anaconda Shell (not the standard Command Prompt) for all subsequent steps.
+  </Step>
+  <Step title="Install Anaconda or Miniconda">
+    Download and install [Anaconda](https://www.anaconda.com/products/distribution) or the lighter [Miniconda](https://docs.conda.io/en/latest/miniconda.html). Either works — Anaconda bundles many scientific packages, while Miniconda is minimal and only installs what is needed.
+
+    - **macOS / Linux**: Accept the `conda init` prompt during installation so that `conda` is available in every new terminal. Restart your terminal after installation.
+    - **Windows**: Do not add Anaconda to the system `PATH` when the installer asks. Instead, open **Anaconda Shell** from the Start Menu whenever you want to use conda.
+
+    After installation, update the conda packaging tool:
+
+    ```bash
+    conda update -n base -c defaults conda
+    ```
+  </Step>
+  <Step title="Clone the repository">
+    Navigate to the directory where you want to store the project, then clone the repository:
+
+    ```bash
+    cd $HOME
+    git clone https://github.com/ageron/handson-ml3.git
+    cd handson-ml3
+    ```
+
+    If you prefer not to use git, download [main.zip](https://github.com/ageron/handson-ml3/archive/main.zip), unzip it, rename the resulting directory to `handson-ml3`, and move it to your development directory.
+  </Step>
+  <Step title="Create the homl3 conda environment">
+    From inside the `handson-ml3` directory, create the environment using the included `environment.yml` file. This installs Python 3.10 along with Scikit-Learn 1.3, TensorFlow 2.14, Keras, NumPy 1.26, Pandas 2.1, Matplotlib 3.8, and all other dependencies:
+
+    ```bash
+    conda env create -f environment.yml
+    ```
+
+    This step takes several minutes. When it completes, activate the new environment:
+
+    ```bash
+    conda activate homl3
+    ```
+
+    <Note>
+      The environment name is `homl3` by default. If you want a different name, pass `-n your_name` to the `conda env create` command. You will then need to adjust the `conda activate` command accordingly.
+    </Note>
+  </Step>
+  <Step title="Register the Jupyter kernel">
+    Register the `homl3` environment as a Jupyter kernel named `python3`. The notebooks default to a kernel named `python3`, so using this name means you will not need to change the kernel manually every time you open a notebook:
+
+    ```bash
+    python3 -m ipykernel install --user --name=python3
+    ```
+  </Step>
+  <Step title="Launch Jupyter">
+    Start Jupyter Notebook:
+
+    ```bash
+    jupyter notebook
+    ```
+
+    Jupyter will open in your browser and show the contents of the `handson-ml3` directory. Click `index.ipynb` to see the table of contents and navigate to any chapter. If your browser does not open automatically, visit [localhost:8888](http://localhost:8888/tree).
+
+    To stop Jupyter, press `Ctrl-C` in the terminal where you started it.
+  </Step>
+</Steps>
+
+## Starting Jupyter in future sessions
+
+Each time you want to work on the notebooks, open a terminal and run:
+
+```bash
+cd $HOME/handson-ml3
+conda activate homl3
+jupyter notebook
+```
+
+## GPU setup (NVIDIA)
+
+If you have a TensorFlow-compatible NVIDIA GPU (Compute Capability 3.5 or higher), you can enable GPU acceleration for the deep learning chapters.
+
+<Steps>
+  <Step title="Install the NVIDIA GPU driver">
+    Download and install the latest driver for your GPU from [nvidia.com](https://www.nvidia.com/Download/index.aspx?lang=en-us).
+  </Step>
+  <Step title="Install CUDA and cuDNN">
+    When you install TensorFlow from the Anaconda channel (which the `environment.yml` does), CUDA and cuDNN are installed automatically alongside TensorFlow. You do not need to install them manually.
+
+    If you are not using Anaconda, follow the manual GPU installation instructions at [tensorflow.org/install/gpu](https://tensorflow.org/install/gpu).
+  </Step>
+  <Step title="Verify GPU access">
+    After completing the main installation and launching Jupyter, open any notebook and run:
+
+    ```python
+    import tensorflow as tf
+    tf.config.list_physical_devices("GPU")
+    ```
+
+    If TensorFlow can see your GPU, a list containing your device(s) will be printed.
+  </Step>
+</Steps>
+
+<Warning>
+  GPU support in Docker requires additional setup. See the [Docker guide](/setup/docker#gpu-support-on-linux) for details.
+</Warning>
+
+## Updating the project
+
+The notebooks are updated regularly to fix issues and add library support. To update your local copy:
+
+```bash
+cd $HOME/handson-ml3
+git pull
+```
+
+If `git pull` fails because you modified a notebook, commit your changes to a branch first:
+
+```bash
+git checkout -b my_branch
+git add -u
+git commit -m "describe your changes here"
+git checkout main
+git pull
+```
+
+After pulling, update the libraries by recreating the conda environment:
+
+```bash
+conda update -c defaults -n base conda
+conda activate base
+conda env remove -n homl3
+conda env create -f environment.yml
+conda activate homl3
+jupyter notebook
+```
+
+## Conda vs pip
+
+The recommended approach is to use conda with `environment.yml`, which handles all library versions and binary dependencies (including GPU support) in a tested, consistent way.
+
+If you prefer not to use Anaconda, you can install the libraries with pip using `requirements.txt`:
+
+```bash
+pip install -r requirements.txt
+```
+
+<Warning>
+  TensorFlow is much easier to install via Anaconda, especially on Windows or when using a GPU. The pip path is not recommended unless you are comfortable managing binary dependencies manually.
+</Warning>
+
+## Library versions installed
+
+The `environment.yml` specifies exact versions for reproducibility. Key packages include:
+
+| Package | Version |
+|---------|---------|
+| Python | 3.10 |
+| Scikit-Learn | 1.3 |
+| TensorFlow | 2.14 |
+| NumPy | 1.26 |
+| Pandas | 2.1 |
+| Matplotlib | 3.8 |
+| JupyterLab | 4.0 |
+| Keras Tuner | 1.4.6 |
+| Transformers | 4.35 |

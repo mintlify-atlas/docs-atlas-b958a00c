@@ -1,133 +1,113 @@
 ---
-title: "Introduction"
-description: "Welcome to the new home for your documentation"
-icon: 'star'
+title: "Hands-On ML: Scikit-Learn, Keras & TensorFlow notebooks"
+description: "Learn Machine Learning and Deep Learning hands-on with 19 Jupyter notebooks covering everything from linear models to transformers, GANs, and reinforcement learning."
 ---
 
-## Setting up
+Hands-On Machine Learning (3rd edition) is the companion notebook repository for the O'Reilly book by Aurélien Géron. It provides complete, runnable Jupyter notebooks for every chapter — covering the full arc from classical ML with Scikit-Learn through modern deep learning with Keras and TensorFlow 2. Each notebook includes working code, visualizations, and exercise solutions.
 
-Get your documentation site up and running in minutes.
-
-<Card
-  title="Start here"
-  icon="rocket"
-  href="/quickstart"
-  horizontal
->
-  Follow our three step quickstart guide.
-</Card>
-
-## Make it yours
-
-Design a docs site that looks great and empowers your users.
-
-<Columns cols={2}>
-  <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
-  >
-    Edit your docs locally and preview them in real time.
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Run notebooks in the cloud in one click — no installation needed
   </Card>
-  <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
-  >
-    Customize the design and colors of your site to match your brand.
+  <Card title="Installation" icon="download" href="/setup/installation">
+    Set up a local environment with Anaconda and Jupyter
   </Card>
-    <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
+  <Card title="Part I: ML Fundamentals" icon="brain" href="/notebooks/ml-landscape">
+    Classification, SVMs, trees, ensembles, and unsupervised learning
   </Card>
-  <Card
-    title="API documentation"
-    icon="terminal"
-    href="/api-reference/introduction"
-  >
-    Auto-generate API documentation from OpenAPI specifications.
+  <Card title="Part II: Deep Learning" icon="microchip" href="/notebooks/neural-nets-keras">
+    Neural networks, CNNs, RNNs, transformers, and generative models
   </Card>
-</Columns>
+</CardGroup>
 
-## Create beautiful pages
+## What's inside
 
-Everything you need to create world-class documentation.
+The repository contains 19 main notebooks — one per book chapter — plus supplementary tutorials on scientific Python and math prerequisites.
 
-<Columns cols={2}>
-  <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX to style your docs pages.
+<CardGroup cols={3}>
+  <Card title="Scikit-Learn" icon="flask" href="/notebooks/end-to-end-project">
+    End-to-end ML projects, classification, regression, and clustering
   </Card>
-  <Card
-    title="Code samples"
-    icon="code"
-    href="/essentials/code"
-  >
-    Add sample code to demonstrate how to use your product.
+  <Card title="TensorFlow & Keras" icon="layer-group" href="/notebooks/neural-nets-keras">
+    Build, train, and tune neural networks with the Keras API
   </Card>
-  <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
-  >
-    Display images and other media.
+  <Card title="Computer Vision" icon="eye" href="/notebooks/computer-vision-cnns">
+    Image classification and object detection with CNNs
   </Card>
-  <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
-  >
-    Write once and reuse across your docs.
+  <Card title="NLP & Transformers" icon="language" href="/notebooks/nlp-attention">
+    Sequence models, attention mechanisms, and language models
   </Card>
-</Columns>
+  <Card title="Generative Models" icon="wand-magic-sparkles" href="/notebooks/autoencoders-gans-diffusion">
+    Autoencoders, GANs, and diffusion models
+  </Card>
+  <Card title="Production ML" icon="server" href="/notebooks/training-deploying-scale">
+    Deploy models at scale with Vertex AI and TensorFlow Serving
+  </Card>
+</CardGroup>
 
-## Make your content agent ready
+## Run notebooks instantly
 
-Make your docs work for humans and AI agents alike.
+<CardGroup cols={2}>
+  <Card title="Open in Google Colab" icon="google" href="https://colab.research.google.com/github/ageron/handson-ml3/blob/main/">
+    The recommended way to run notebooks — no setup required
+  </Card>
+  <Card title="Open in Kaggle" icon="chart-bar" href="https://homl.info/kaggle3/">
+    Run notebooks directly in Kaggle's free environment
+  </Card>
+</CardGroup>
 
-<Columns cols={2}>
-  <Card
-    title="Prompt component"
-    icon="robot"
-    href="/agent-ready/prompt"
-  >
-    Embed shareable AI prompts readers can copy or open in Cursor.
-  </Card>
-  <Card
-    title="Visibility"
-    icon="eye"
-    href="/agent-ready/visibility"
-  >
-    Show different content to humans and agents reading your docs.
-  </Card>
-  <Card
-    title="Contextual menu"
-    icon="bolt"
-    href="/agent-ready/contextual"
-  >
-    Give readers one-click access to Claude, ChatGPT, Cursor, and more.
-  </Card>
-  <Card
-    title="AI coding tools"
-    icon="wand-magic-sparkles"
-    href="/ai-tools/claude-code"
-  >
-    Set up Claude Code, Cursor, or Windsurf with Mintlify's skill.
-  </Card>
-</Columns>
+## Getting started locally
 
-## Need inspiration?
+<Steps>
+  <Step title="Clone the repository">
+    ```bash
+    git clone https://github.com/ageron/handson-ml3.git
+    cd handson-ml3
+    ```
+  </Step>
+  <Step title="Create the conda environment">
+    ```bash
+    conda env create -f environment.yml
+    conda activate homl3
+    ```
+  </Step>
+  <Step title="Register the Jupyter kernel">
+    ```bash
+    python -m ipykernel install --user --name=python3
+    ```
+  </Step>
+  <Step title="Launch Jupyter">
+    ```bash
+    jupyter notebook
+    ```
+    Open `index.ipynb` in your browser to navigate all chapters.
+  </Step>
+</Steps>
 
-<Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
->
-  Browse our showcase of exceptional documentation sites.
-</Card>
+<Note>
+  If you have a TensorFlow-compatible NVIDIA GPU, see the [installation guide](/setup/installation) for GPU setup instructions including CUDA and cuDNN.
+</Note>
+
+## Notebook overview
+
+| # | Chapter | Topics |
+|---|---------|--------|
+| 1 | [The ML Landscape](/notebooks/ml-landscape) | Types of ML, model selection, challenges |
+| 2 | [End-to-End ML Project](/notebooks/end-to-end-project) | Pipeline, feature engineering, evaluation |
+| 3 | [Classification](/notebooks/classification) | Binary/multiclass, precision/recall, ROC |
+| 4 | [Training Models](/notebooks/training-models) | Linear/polynomial regression, regularization |
+| 5 | [Support Vector Machines](/notebooks/support-vector-machines) | Linear SVM, kernel trick, SVR |
+| 6 | [Decision Trees](/notebooks/decision-trees) | CART, pruning, visualization |
+| 7 | [Ensemble Learning](/notebooks/ensemble-learning) | Bagging, boosting, XGBoost |
+| 8 | [Dimensionality Reduction](/notebooks/dimensionality-reduction) | PCA, t-SNE, UMAP |
+| 9 | [Unsupervised Learning](/notebooks/unsupervised-learning) | K-Means, DBSCAN, Gaussian mixtures |
+| 10 | [Neural Nets with Keras](/notebooks/neural-nets-keras) | Sequential/Functional API, callbacks |
+| 11 | [Training Deep Networks](/notebooks/training-deep-neural-networks) | Batch norm, dropout, learning schedules |
+| 12 | [Custom TF Models](/notebooks/custom-models-tensorflow) | Custom layers, training loops, autodiff |
+| 13 | [Data Pipelines](/notebooks/loading-preprocessing-data) | tf.data, TF Datasets, preprocessing layers |
+| 14 | [Computer Vision CNNs](/notebooks/computer-vision-cnns) | ResNet, EfficientNet, object detection |
+| 15 | [Sequences & Time Series](/notebooks/sequences-rnns-cnns) | RNNs, LSTMs, WaveNet, ARMA |
+| 16 | [NLP & Attention](/notebooks/nlp-attention) | Transformers, BERT, T5, translation |
+| 17 | [Autoencoders & GANs](/notebooks/autoencoders-gans-diffusion) | VAEs, StyleGAN, DDPM diffusion |
+| 18 | [Reinforcement Learning](/notebooks/reinforcement-learning) | Policy gradients, DQN, Gymnasium |
+| 19 | [Deploy at Scale](/notebooks/training-deploying-scale) | Vertex AI, TF Serving, distributed training |

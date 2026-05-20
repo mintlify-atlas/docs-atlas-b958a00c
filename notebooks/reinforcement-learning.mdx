@@ -1,0 +1,167 @@
+---
+title: "Reinforcement Learning with Deep Q-Networks (Ch. 18)"
+description: "Train agents with policy gradients (REINFORCE) and Deep Q-Networks on CartPole and Atari environments from OpenAI Gymnasium using TensorFlow and Keras."
+---
+
+Reinforcement learning (RL) is fundamentally different from supervised learning: instead of labelled examples, an agent learns by interacting with an environment, taking actions, and receiving scalar reward signals. Chapter 18 introduces the core RL concepts — environments, observations, actions, policies, and returns — and then implements two foundational algorithms: REINFORCE (policy gradients) and Deep Q-Network (DQN), complete with a replay buffer and target network. All experiments use the Farama Foundation's **Gymnasium** library (the successor to OpenAI Gym).
+
+## What you'll learn
+
+- The RL framework: environments, observations, actions, rewards, episodes
+- OpenAI **Gymnasium** API: `make()`, `reset()`, `step()`, `render()`
+- CartPole and Atari Breakout as benchmark environments
+- **Policy gradient methods**: the REINFORCE algorithm
+- Estimating policy gradients and computing discounted returns
+- **Deep Q-Networks (DQN)**: the Q-value function and the Bellman equation
+- **Experience replay buffer** to break sample correlation
+- **Target network** to stabilise Q-learning targets
+- ε-greedy exploration and ε decay schedules
+- Overview of state-of-the-art algorithms: DQN variants, PPO, SAC
+
+## Key concepts
+
+### The Gymnasium API
+
+Gymnasium provides a standardised interface for a wide variety of environments:
+- `env.reset(seed=42)` resets the environment and returns the initial observation and an info dict.
+- `env.step(action)` applies the action and returns `(observation, reward, terminated, truncated, info)`.
+- `env.render()` returns an RGB array when `render_mode="rgb_array"` is set.
+- `env.action_space` and `env.observation_space` describe the shape of valid actions and observations.
+
+CartPole-v1's observation is a 4-element vector `[cart position, cart velocity, pole angle, pole angular velocity]` and its action space is discrete with two choices: push left (0) or push right (1). The episode ends when the pole falls over or the cart leaves the track.
+
+### Policy gradient methods (REINFORCE)
+
+In REINFORCE you represent the policy as a neural network that maps observations to action probabilities. At each training step you:
+1. Run several episodes using the current policy.
+2. For each step in each episode, compute the **discounted return** — the sum of future rewards, exponentially discounted by factor γ.
+3. Update the policy network by gradient ascent on the log-probability of taken actions, weighted by the discounted return.
+
+REINFORCE is unbiased but has high variance. Subtracting a **baseline** (e.g. the mean return) reduces variance without introducing bias.
+
+### Deep Q-Networks
+
+DQN learns a Q-function `Q(s, a)` — the expected discounted return when taking action `a` in state `s` and following the optimal policy thereafter. A neural network estimates Q-values for all actions simultaneously. The training target for action `a` in state `s` is `r + γ * max_a' Q(s', a')` (Bellman equation), where the target network provides `Q(s', a')` and is updated slowly (every few thousand steps) to stabilise training.
+
+Two key techniques:
+- **Replay buffer**: transitions `(s, a, r, s', done)` are stored and sampled randomly for training, breaking temporal correlations.
+- **Target network**: a separate copy of the Q-network whose parameters are held fixed for a number of steps, preventing the bootstrapping target from chasing itself.
+
+## Code examples
+
+### Creating and exploring a Gymnasium environment
+
+```python
+import gymnasium as gym
+
+env = gym.make("CartPole-v1", render_mode="rgb_array")
+
+obs, info = env.reset(seed=42)
+print(obs)   # [ 0.0273956  -0.00611216  0.03585979  0.0197368 ]
+print(info)  # {}
+
+# Take a random action
+action = env.action_space.sample()
+obs, reward, terminated, truncated, info = env.step(action)
+print(f"obs={obs}, reward={reward}, done={terminated or truncated}")
+```
+
+### Simple policy: always push left or right based on pole angle
+
+```python
+import gymnasium as gym
+
+def basic_policy(obs):
+    angle = obs[2]
+    return 0 if angle < 0 else 1  # push left if leaning left, else right
+
+env = gym.make("CartPole-v1", render_mode="rgb_array")
+totals = []
+for episode in range(500):
+    episode_rewards = 0
+    obs, _ = env.reset(seed=episode)
+    for step in range(200):
+        action = basic_policy(obs)
+        obs, reward, terminated, truncated, _ = env.step(action)
+        episode_rewards += reward
+        if terminated or truncated:
+            break
+    totals.append(episode_rewards)
+```
+
+### DQN Q-network architecture
+
+```python
+import tensorflow as tf
+
+input_shape = [4]   # CartPole observation size
+n_outputs = 2       # number of actions
+
+model = tf.keras.Sequential([
+    tf.keras.layers.Dense(32, activation="elu", input_shape=input_shape),
+    tf.keras.layers.Dense(32, activation="elu"),
+    tf.keras.layers.Dense(n_outputs)
+])
+```
+
+### Replay buffer and training step sketch
+
+```python
+from collections import deque
+import numpy as np
+
+replay_buffer = deque(maxlen=2000)
+
+def sample_experiences(batch_size):
+    indices = np.random.randint(len(replay_buffer), size=batch_size)
+    batch = [replay_buffer[idx] for idx in indices]
+    states, actions, rewards, next_states, dones = [
+        np.array([exp[field] for exp in batch]) for field in range(5)]
+    return states, actions, rewards, next_states, dones
+
+def training_step(batch_size, model, target_model, optimizer, gamma=0.99):
+    states, actions, rewards, next_states, dones = sample_experiences(batch_size)
+    next_Q_values = target_model.predict(next_states, verbose=0)
+    max_next_Q_values = next_Q_values.max(axis=1)
+    target_Q_values = rewards + (1 - dones) * gamma * max_next_Q_values
+    with tf.GradientTape() as tape:
+        all_Q_values = model(states)
+        Q_values = tf.reduce_sum(
+            all_Q_values * tf.one_hot(actions, n_outputs), axis=1)
+        loss = tf.reduce_mean(tf.square(target_Q_values - Q_values))
+    grads = tape.gradient(loss, model.trainable_variables)
+    optimizer.apply_gradients(zip(grads, model.trainable_variables))
+```
+
+## Running this notebook
+
+<Steps>
+  <Step title="Install Gymnasium">
+    On Colab, the notebook automatically removes the old `gym` package and installs `gymnasium` with Box2D support:
+    ```bash
+    pip install gymnasium[Box2D,atari,accept-rom-license]
+    ```
+  </Step>
+  <Step title="Open in Colab">
+    [Open in Colab](https://colab.research.google.com/github/ageron/handson-ml3/blob/main/18_reinforcement_learning.ipynb)
+  </Step>
+  <Step title="Install all dependencies">
+    ```bash
+    pip install -r requirements.txt
+    ```
+  </Step>
+  <Step title="Keras 2 compatibility">
+    This chapter sets `TF_USE_LEGACY_KERAS=1` before importing TensorFlow. This must be set before the first `import tensorflow` call.
+  </Step>
+  <Step title="Rendering animations">
+    The notebook uses Matplotlib's JavaScript animation backend to display CartPole episodes inline. This works in Colab and JupyterLab.
+  </Step>
+</Steps>
+
+## Exercises
+
+Exercises include implementing the REINFORCE algorithm from scratch, adding a baseline to reduce gradient variance, and training a DQN to play Atari Breakout using pixel observations. Solutions are in the notebook.
+
+<Note>
+  Gymnasium is the Farama Foundation's maintained fork of the original OpenAI Gym. It is a drop-in replacement: `import gymnasium as gym` and everything works identically. The notebook imports `gymnasium` directly.
+</Note>

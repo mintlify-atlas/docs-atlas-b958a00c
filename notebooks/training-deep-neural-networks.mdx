@@ -1,0 +1,126 @@
+---
+title: "Training Deep Neural Networks Effectively (Ch. 11)"
+description: "Overcome vanishing gradients with He initialisation, batch normalisation, and nonsaturating activations. Master Adam optimizer and learning rate schedules."
+---
+
+Training a shallow neural network is relatively straightforward, but stacking dozens or hundreds of layers introduces a set of practical challenges that can derail convergence entirely. Chapter 11 is a deep-dive into the engineering tricks that make deep networks trainable: careful weight initialisation, nonsaturating activation functions, batch normalisation, dropout regularisation, adaptive learning-rate optimizers, and gradient clipping. The chapter demonstrates each technique empirically on Fashion MNIST with a 100-layer network, letting you see the impact firsthand.
+
+## What you'll learn
+
+- Why deep networks suffer from **vanishing and exploding gradients**
+- **Glorot (Xavier) and He initialisation** for different activation functions
+- Nonsaturating activations: Leaky ReLU, ELU, SELU, GELU, Swish, Mish
+- **Batch Normalisation** — how it works and where to insert it in a network
+- **Gradient clipping** to prevent exploding gradients
+- Reusing pretrained layers and **transfer learning**
+- **Dropout** and other regularisation techniques (ℓ1/ℓ2, Max-Norm)
+- Learning rate schedules: `ExponentialDecay`, `ReduceLROnPlateau`, 1-cycle policy
+- Adaptive optimizers: **Adam**, **Nadam**, **RMSProp**, AdaGrad
+
+## Key concepts
+
+### Vanishing and exploding gradients
+
+When gradients are backpropagated through many layers, they can shrink exponentially (vanish) or grow unboundedly (explode). Saturating activations like sigmoid and tanh are especially prone to vanishing gradients because their derivatives are essentially zero far from the origin. The sigmoid saturation plot in the notebook visualises the problem concretely: the function is nearly flat for large positive or negative inputs, so gradients stall.
+
+### Initialisation strategies
+
+Glorot (Xavier) initialisation keeps the variance of activations and gradients roughly constant across layers when using sigmoid or tanh. He initialisation is the analogous strategy tuned for ReLU-family activations, which have twice the effective variance. Choosing the wrong initialiser can cause training to diverge or stagnate from the very first iteration.
+
+### Batch Normalisation
+
+Batch Normalisation (BN) zero-centres and normalises the inputs of each layer, then applies a learned per-feature scale and shift. During training this is computed over the current mini-batch; at inference time, running statistics accumulated during training are used. BN dramatically reduces sensitivity to initialisation, allows much higher learning rates, and acts as a mild regulariser. The typical placement is **after** the linear transformation and **before** the activation function, though placing it after activation also works and is common in practice.
+
+### Dropout
+
+Dropout randomly sets a fraction of neuron outputs to zero at each training step, forcing the network to learn redundant representations and preventing co-adaptation. At inference time all neurons are active but their outputs are scaled by the keep probability. Dropout is most effective in the fully-connected layers of large networks; in convolutional layers `SpatialDropout2D` is preferred.
+
+### Learning rate scheduling and adaptive optimizers
+
+A fixed learning rate is rarely optimal throughout training. Schedules like `ExponentialDecay` reduce the rate by a constant factor every few thousand steps. `ReduceLROnPlateau` watches a metric (e.g. validation loss) and halves the rate when it plateaus. Adam combines momentum with per-parameter adaptive learning rates and typically converges faster than plain SGD with a fixed rate; Nadam adds Nesterov momentum on top of Adam.
+
+## Code examples
+
+### He initialisation
+
+```python
+import tensorflow as tf
+
+dense = tf.keras.layers.Dense(50, activation="relu",
+                              kernel_initializer="he_normal")
+```
+
+### 100-layer network with Batch Normalisation
+
+```python
+tf.keras.backend.clear_session()
+tf.random.set_seed(42)
+
+model = tf.keras.Sequential([
+    tf.keras.layers.Flatten(input_shape=[28, 28]),
+    tf.keras.layers.BatchNormalization(),
+    tf.keras.layers.Dense(300, activation="relu",
+                          kernel_initializer="he_normal"),
+    tf.keras.layers.BatchNormalization(),
+    tf.keras.layers.Dense(100, activation="relu",
+                          kernel_initializer="he_normal"),
+    tf.keras.layers.BatchNormalization(),
+    tf.keras.layers.Dense(10, activation="softmax")
+])
+
+model.compile(loss="sparse_categorical_crossentropy",
+              optimizer=tf.keras.optimizers.SGD(learning_rate=0.001),
+              metrics=["accuracy"])
+```
+
+### Exponential learning rate decay
+
+```python
+lr_scheduler = tf.keras.optimizers.schedules.ExponentialDecay(
+    initial_learning_rate=0.01,
+    decay_steps=10_000,
+    decay_rate=0.9)
+
+optimizer = tf.keras.optimizers.SGD(learning_rate=lr_scheduler)
+```
+
+### Dropout regularisation
+
+```python
+model = tf.keras.Sequential([
+    tf.keras.layers.Flatten(input_shape=[28, 28]),
+    tf.keras.layers.Dropout(rate=0.2),
+    tf.keras.layers.Dense(300, activation="relu",
+                          kernel_initializer="he_normal"),
+    tf.keras.layers.Dropout(rate=0.2),
+    tf.keras.layers.Dense(100, activation="relu",
+                          kernel_initializer="he_normal"),
+    tf.keras.layers.Dropout(rate=0.2),
+    tf.keras.layers.Dense(10, activation="softmax")
+])
+```
+
+## Running this notebook
+
+<Steps>
+  <Step title="Open in Colab">
+    [Open in Colab](https://colab.research.google.com/github/ageron/handson-ml3/blob/main/11_training_deep_neural_networks.ipynb)
+  </Step>
+  <Step title="Install dependencies">
+    ```bash
+    pip install -r requirements.txt
+    ```
+    TensorFlow ≥ 2.8 is required.
+  </Step>
+  <Step title="Run sequentially">
+    Each section builds on the Fashion MNIST dataset loaded at the top of the notebook. Run all setup cells before the section you're exploring.
+  </Step>
+</Steps>
+
+## Exercises
+
+The chapter exercises include implementing a custom learning rate schedule from scratch, comparing several optimizers on the same architecture, and reusing lower layers of a pretrained model for a related task. All solutions are provided at the end of the notebook.
+
+<Tip>
+  For the 100-layer SELU experiment the notebook normalises pixel values to mean 0 and standard deviation 1 (not just division by 255). SELU's self-normalising property requires standardised inputs to function correctly.
+</Tip>

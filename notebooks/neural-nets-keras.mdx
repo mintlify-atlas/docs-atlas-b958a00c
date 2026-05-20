@@ -1,0 +1,141 @@
+---
+title: "Introduction to Neural Networks with Keras (Ch. 10)"
+description: "Build neural networks with Keras Sequential, Functional, and subclassing APIs. Use callbacks, EarlyStopping, and Keras Tuner on Fashion MNIST."
+---
+
+Chapter 10 is where the deep learning journey begins in earnest. You'll move from the conceptual underpinnings of artificial neural networks — tracing their origins from the biological neuron through the Perceptron — all the way to training a fully functional image classifier using Keras on the Fashion MNIST dataset. By the end of this chapter you will know how to construct models three different ways, monitor training with callbacks, and automate hyperparameter search with Keras Tuner.
+
+## What you'll learn
+
+- The Perceptron and its relationship to modern neural networks
+- Regression and classification with Scikit-Learn's `MLPRegressor` / `MLPClassifier`
+- Building models with the **Sequential API**, **Functional API**, and **model subclassing**
+- Compiling models: choosing a loss function, optimizer, and metrics
+- Training with `model.fit()`, monitoring validation loss, and making predictions
+- Saving and loading models (SavedModel format and HDF5)
+- **Callbacks**: `ModelCheckpoint`, `EarlyStopping`, `TensorBoard`
+- Visualising training curves with TensorBoard
+- Automated hyperparameter search with **Keras Tuner**
+
+## Key concepts
+
+### The three Keras model-building APIs
+
+Keras offers three levels of flexibility. The **Sequential API** is the simplest — you stack layers one after another, which is perfect for the vast majority of neural networks. The **Functional API** lets you build directed acyclic graphs of layers, making it easy to create models with multiple inputs/outputs, residual connections, and shared layers. **Model subclassing** gives you full control via Python; you override `__init__` and `call()` to create arbitrarily dynamic architectures, though the resulting models are harder to inspect and serialise.
+
+### Compiling and training
+
+Before you can train a model you must compile it, specifying an optimizer (SGD, Adam, etc.), a loss function (e.g. `sparse_categorical_crossentropy` for multiclass problems), and optional metrics such as accuracy. Once compiled, `model.fit()` runs mini-batch gradient descent for the requested number of epochs, optionally evaluating on a held-out validation set at the end of each epoch.
+
+### Callbacks
+
+Callbacks hook into the training loop at defined points. `ModelCheckpoint` saves weights to disk whenever the validation metric improves, so a crash or early stop never discards your best results. `EarlyStopping` halts training automatically once the validation metric stops improving for a configurable number of epochs (`patience`), preventing overfitting. `TensorBoard` logs scalars, histograms, and images so you can inspect training progress interactively in the browser.
+
+### Keras Tuner
+
+Keras Tuner wraps your model-building code in a `HyperModel` and searches the hyperparameter space — learning rates, layer sizes, dropout rates, etc. — using strategies such as random search, Hyperband, and Bayesian optimisation. It integrates cleanly with `model.fit()` and can distribute searches across multiple GPUs.
+
+## Code examples
+
+### Building a classifier with the Sequential API
+
+```python
+import tensorflow as tf
+
+fashion_mnist = tf.keras.datasets.fashion_mnist.load_data()
+(X_train_full, y_train_full), (X_test, y_test) = fashion_mnist
+X_train, y_train = X_train_full[:-5000], y_train_full[:-5000]
+X_valid, y_valid = X_train_full[-5000:], y_train_full[-5000:]
+X_train, X_valid, X_test = X_train / 255., X_valid / 255., X_test / 255.
+
+tf.random.set_seed(42)
+model = tf.keras.Sequential([
+    tf.keras.layers.Flatten(input_shape=[28, 28]),
+    tf.keras.layers.Dense(300, activation="relu"),
+    tf.keras.layers.Dense(100, activation="relu"),
+    tf.keras.layers.Dense(10, activation="softmax")
+])
+
+model.compile(loss="sparse_categorical_crossentropy",
+              optimizer="sgd",
+              metrics=["accuracy"])
+
+history = model.fit(X_train, y_train, epochs=30,
+                    validation_data=(X_valid, y_valid))
+```
+
+### Using callbacks: EarlyStopping and ModelCheckpoint
+
+```python
+checkpoint_cb = tf.keras.callbacks.ModelCheckpoint(
+    "my_best_model.keras", save_best_only=True)
+
+early_stopping_cb = tf.keras.callbacks.EarlyStopping(
+    patience=10, restore_best_weights=True)
+
+history = model.fit(
+    X_train, y_train, epochs=100,
+    validation_data=(X_valid, y_valid),
+    callbacks=[checkpoint_cb, early_stopping_cb])
+```
+
+### Hyperparameter search with Keras Tuner
+
+```python
+import keras_tuner as kt
+
+def build_model(hp):
+    n_hidden = hp.Int("n_hidden", min_value=1, max_value=8, default=2)
+    n_neurons = hp.Int("n_neurons", min_value=16, max_value=256)
+    learning_rate = hp.Float("learning_rate", min_value=1e-4, max_value=1e-2,
+                             sampling="log")
+    model = tf.keras.Sequential()
+    model.add(tf.keras.layers.Flatten())
+    for _ in range(n_hidden):
+        model.add(tf.keras.layers.Dense(n_neurons, activation="relu"))
+    model.add(tf.keras.layers.Dense(10, activation="softmax"))
+    model.compile(loss="sparse_categorical_crossentropy",
+                  optimizer=tf.keras.optimizers.SGD(learning_rate=learning_rate),
+                  metrics=["accuracy"])
+    return model
+
+random_search_tuner = kt.RandomSearch(
+    build_model, objective="val_accuracy", max_trials=5,
+    overwrite=True, directory="my_fashion_mnist", project_name="my_rnd_search",
+    seed=42)
+random_search_tuner.search(X_train, y_train, epochs=10,
+                           validation_data=(X_valid, y_valid))
+```
+
+## Running this notebook
+
+<Steps>
+  <Step title="Open in Colab">
+    Click the badge to open the notebook directly in Google Colab:
+    [Open in Colab](https://colab.research.google.com/github/ageron/handson-ml3/blob/main/10_neural_nets_with_keras.ipynb)
+  </Step>
+  <Step title="Install dependencies">
+    The notebook requires Python ≥ 3.7, Scikit-Learn ≥ 1.0.1, and TensorFlow ≥ 2.8. On Colab these are pre-installed. Locally, install from the repo's `requirements.txt`:
+    ```bash
+    pip install -r requirements.txt
+    ```
+  </Step>
+  <Step title="Run all cells">
+    Use **Runtime → Run all** in Colab, or execute `jupyter lab` locally and run cells sequentially. GPU access is optional for Chapter 10 but will speed up larger experiments.
+  </Step>
+  <Step title="Monitor with TensorBoard">
+    After training runs that include the `TensorBoard` callback, launch TensorBoard from the terminal:
+    ```bash
+    tensorboard --logdir=./my_logs
+    ```
+    Then open `http://localhost:6006` in your browser.
+  </Step>
+</Steps>
+
+## Exercises
+
+Chapter 10 includes exercises that ask you to experiment with different architectures on Fashion MNIST, implement a regression MLP on the California Housing dataset, and tune hyperparameters with Keras Tuner. Solutions are included at the bottom of the notebook.
+
+<Note>
+  Chapters 16–19 use `tf_keras` (Keras 2) rather than the default Keras 3 that ships with TensorFlow ≥ 2.16. Chapter 10 targets standard Keras 3 and should work without this workaround.
+</Note>

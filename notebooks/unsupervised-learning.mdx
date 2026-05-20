@@ -1,0 +1,109 @@
+---
+title: "Chapter 9: Unsupervised Learning Techniques"
+description: "Clustering with K-Means, DBSCAN, and Gaussian Mixture Models, including inertia, silhouette scores, BIC/AIC model selection, and anomaly detection without labelled data."
+---
+
+Chapter 9 explores unsupervised learning—finding structure in data without labels. You will apply K-Means clustering to group similar instances, use DBSCAN to identify clusters of arbitrary shape, and fit Gaussian Mixture Models (GMMs) that provide soft cluster assignments and can model data generation. The chapter also covers anomaly detection, image segmentation, and semi-supervised learning.
+
+## What you'll learn
+
+- The difference between classification (supervised) and clustering (unsupervised)
+- K-Means clustering with `KMeans`: centroids, labels, and inertia
+- K-Means initialisation with K-Means++ and the `n_init` parameter
+- Mini-batch K-Means with `MiniBatchKMeans` for large datasets
+- Evaluating cluster quality with inertia and the silhouette score
+- Finding the optimal *k* using the elbow method and silhouette diagrams
+- DBSCAN for density-based clustering of arbitrary-shaped clusters
+- Gaussian Mixture Models (GMM) with `GaussianMixture`
+- Model selection for GMMs using BIC and AIC
+- Anomaly and novelty detection with GMMs
+
+## Key concepts
+
+**K-Means.** K-Means partitions data into *k* clusters by alternating between assigning each instance to the nearest centroid and updating centroids to the mean of assigned instances. The algorithm is fast but assumes spherical clusters of similar size. *Inertia*—the sum of squared distances from each instance to its assigned centroid—measures within-cluster compactness; lower is better, but it always decreases as *k* increases so it cannot be used alone to choose *k*.
+
+**Silhouette score.** The silhouette coefficient for an instance is (b − a) / max(a, b), where *a* is the mean distance to instances in the same cluster and *b* is the mean distance to instances in the nearest other cluster. A score near +1 means the instance is well-placed; near 0 means it is on a cluster boundary; near −1 means it is in the wrong cluster. The average silhouette score across all instances is a more principled way to choose *k* than inertia alone.
+
+**DBSCAN.** Density-Based Spatial Clustering of Applications with Noise identifies clusters as dense regions separated by sparse regions. It can find arbitrarily shaped clusters and automatically labels outliers as noise. The key hyperparameters are `eps` (neighbourhood radius) and `min_samples` (minimum cluster size).
+
+**Gaussian Mixture Models.** A GMM assumes the data was generated from a mixture of Gaussian distributions. The EM algorithm fits the parameters (means, covariances, mixing weights) by iterating expectation (soft assignments) and maximisation (parameter updates). GMMs support both hard and soft cluster assignments and can estimate the density of each point—useful for anomaly detection.
+
+## Code examples
+
+**K-Means clustering:**
+
+```python
+from sklearn.cluster import KMeans
+from sklearn.datasets import make_blobs
+
+blob_centers = [[0.2, 2.3], [-1.5, 2.3], [-2.8, 1.8],
+                [-2.8, 2.8], [-2.8, 1.3]]
+blob_std = [0.4, 0.3, 0.1, 0.1, 0.1]
+X, y = make_blobs(n_samples=2000, centers=blob_centers,
+                  cluster_std=blob_std, random_state=7)
+
+k = 5
+kmeans = KMeans(n_clusters=k, n_init=10, random_state=42)
+y_pred = kmeans.fit_predict(X)
+
+print(kmeans.cluster_centers_)   # centroid coordinates
+print(kmeans.inertia_)           # 211.60
+```
+
+**Silhouette score:**
+
+```python
+from sklearn.metrics import silhouette_score
+
+silhouette_score(X, kmeans.labels_)
+```
+
+**DBSCAN:**
+
+```python
+from sklearn.cluster import DBSCAN
+
+dbscan = DBSCAN(eps=0.05, min_samples=5)
+dbscan.fit(X)
+dbscan.labels_[:10]   # -1 indicates noise
+```
+
+**Gaussian Mixture Model:**
+
+```python
+from sklearn.mixture import GaussianMixture
+
+gm = GaussianMixture(n_components=3, n_init=10, random_state=42)
+gm.fit(X)
+
+gm.weights_           # mixing coefficients
+gm.means_             # cluster means
+gm.covariances_       # cluster covariance matrices
+
+# Select number of components with BIC
+bic_scores = [GaussianMixture(n_components=k, n_init=10, random_state=42)
+              .fit(X).bic(X)
+              for k in range(1, 11)]
+```
+
+<Tip>
+K-Means requires you to specify *k* upfront. When the number of clusters is unknown, plot the inertia against *k* (elbow method) and the mean silhouette score against *k*. If cluster shapes are non-spherical or clusters differ greatly in size, prefer DBSCAN or a GMM.
+</Tip>
+
+## Running this notebook
+
+<Steps>
+  <Step title="Open in Colab">
+    [Open in Colab](https://colab.research.google.com/github/ageron/handson-ml3/blob/main/09_unsupervised_learning.ipynb)
+  </Step>
+  <Step title="No external data download needed for early sections">
+    The clustering examples use synthetic data (`make_blobs`) and the iris dataset (built into Scikit-Learn). The MNIST-based sections in the middle of the notebook call `fetch_openml` to download the dataset.
+  </Step>
+  <Step title="Run cells in order">
+    Several cells depend on variables defined earlier in the notebook.
+  </Step>
+</Steps>
+
+## Exercises
+
+The exercises cover applying K-Means to MNIST as a dimensionality reduction preprocessing step, comparing clustering quality metrics for different *k* values, and using a GMM for anomaly detection on a synthetic dataset. Solutions are in the notebook.

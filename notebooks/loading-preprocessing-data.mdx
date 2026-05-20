@@ -1,0 +1,142 @@
+---
+title: "Loading and Preprocessing Data with TensorFlow (Ch. 13)"
+description: "Build efficient input pipelines with tf.data.Dataset, TFRecord files, and Keras preprocessing layers for normalisation, text vectorisation, and encoding."
+---
+
+Feeding data to a neural network efficiently is just as important as the network architecture itself. Chapter 13 covers TensorFlow's complete data-loading ecosystem: the `tf.data` API for constructing flexible, high-performance input pipelines; TFRecord files for storing large datasets in a binary format optimised for sequential reads; the TensorFlow Datasets (`tfds`) library for accessing hundreds of ready-to-use datasets; and Keras preprocessing layers that let you embed data normalisation and encoding directly into the model graph.
+
+## What you'll learn
+
+- Creating datasets with **`tf.data.Dataset.from_tensor_slices`** and from files
+- Chaining transformations: `map`, `filter`, `batch`, `repeat`, `shuffle`, `prefetch`, `cache`
+- Reading and writing **TFRecord** files with `tf.io`
+- Protocol Buffers and the `Example` / `SequenceExample` protobuf formats
+- Loading standard datasets with **TensorFlow Datasets (`tfds`)**
+- Keras preprocessing layers: `Normalization`, `Discretization`, `CategoryEncoding`, `Hashing`, `StringLookup`, `TextVectorization`, `RandomFlip`, `RandomRotation`
+- Building a complete CSV input pipeline with `interleave` and parallel reads
+
+## Key concepts
+
+### The tf.data pipeline model
+
+`tf.data.Dataset` represents a potentially infinite sequence of elements (batches, images, sentences, etc.). You compose transformations by chaining method calls — each call returns a new dataset without modifying the original. The key performance primitives are:
+
+- **`prefetch(n)`** — starts preparing the next `n` batches while the model processes the current one, hiding I/O latency behind compute.
+- **`cache()`** — stores the dataset in memory (or on disk) after the first epoch, eliminating repeated file reads.
+- **`interleave()`** — reads from multiple files in parallel, masking the latency of individual disk seeks.
+- **`map(fn, num_parallel_calls=tf.data.AUTOTUNE)`** — applies a preprocessing function to each element concurrently across multiple CPU threads.
+
+A typical production pipeline looks like: list files → interleave reads → map (parse + augment) → shuffle → batch → prefetch.
+
+### TFRecord files
+
+TFRecord is TensorFlow's native binary file format. Each record is a serialised `tf.train.Example` protocol buffer containing named features. Writing your dataset to TFRecord files and reading it back is the most I/O-efficient approach for very large datasets, particularly when stored on network-attached storage or cloud object stores like GCS.
+
+### Keras preprocessing layers
+
+Preprocessing layers perform feature engineering inside the model graph, which means:
+- The same transformation is applied automatically at inference time.
+- You can export the entire preprocessing+model as a single SavedModel.
+- You get GPU acceleration for certain transforms (e.g. random augmentation).
+
+`Normalization` computes the mean and variance of the training set via `adapt()` and applies standardisation. `TextVectorization` tokenises and vocabulary-maps text. `CategoryEncoding` one-hot or multi-hot encodes integer features.
+
+## Code examples
+
+### Basic tf.data pipeline
+
+```python
+import tensorflow as tf
+
+X = tf.range(10)
+dataset = tf.data.Dataset.from_tensor_slices(X)
+
+# Chain transformations
+dataset = dataset.repeat(3).batch(7)
+for item in dataset:
+    print(item)
+
+# Apply a function to each element
+dataset = dataset.map(lambda x: x * 2)
+
+# Filter elements
+dataset = dataset.filter(lambda x: tf.reduce_sum(x) > 50)
+```
+
+### Production pipeline from CSV files
+
+```python
+filepath_dataset = tf.data.Dataset.list_files(train_filepaths, seed=42)
+
+n_readers = 5
+dataset = filepath_dataset.interleave(
+    lambda filepath: tf.data.TextLineDataset(filepath).skip(1),
+    cycle_length=n_readers)
+
+@tf.function
+def parse_csv_line(line):
+    defs = [0.] * n_inputs + [tf.constant([], dtype=tf.float32)]
+    fields = tf.io.decode_csv(line, record_defaults=defs)
+    x = tf.stack(fields[:-1])
+    y = tf.stack(fields[-1:])
+    return x, y
+
+dataset = dataset.map(parse_csv_line, num_parallel_calls=tf.data.AUTOTUNE)
+dataset = dataset.shuffle(buffer_size=10_000).batch(32).prefetch(1)
+```
+
+### Keras Normalization preprocessing layer
+
+```python
+norm_layer = tf.keras.layers.Normalization()
+norm_layer.adapt(X_train)  # learns mean and variance from training data
+
+model = tf.keras.Sequential([
+    norm_layer,
+    tf.keras.layers.Dense(300, activation="relu"),
+    tf.keras.layers.Dense(100, activation="relu"),
+    tf.keras.layers.Dense(1)
+])
+```
+
+### Writing and reading TFRecord files
+
+```python
+import tensorflow as tf
+
+# Writing
+with tf.io.TFRecordWriter("my_data.tfrecord") as f:
+    for _ in range(3):
+        f.write(b"This is a record")  # raw bytes
+
+# Reading
+filepaths = ["my_data.tfrecord"]
+dataset = tf.data.TFRecordDataset(filepaths)
+for item in dataset:
+    print(item)
+```
+
+## Running this notebook
+
+<Steps>
+  <Step title="Open in Colab">
+    [Open in Colab](https://colab.research.google.com/github/ageron/handson-ml3/blob/main/13_loading_and_preprocessing_data.ipynb)
+  </Step>
+  <Step title="Install dependencies">
+    ```bash
+    pip install -r requirements.txt
+    ```
+    The notebook uses `tensorflow-datasets~=4.9.3` for the `tfds` examples.
+  </Step>
+  <Step title="California Housing CSV pipeline">
+    The notebook generates 20 CSV shards from the California Housing dataset. These are created automatically in the `datasets/housing/` directory when you run the setup cells.
+  </Step>
+</Steps>
+
+## Exercises
+
+Exercises cover building a TFRecord pipeline for the Fashion MNIST dataset, using `tf.io.parse_single_example` to decode serialised protobuf records, and embedding preprocessing layers inside a Keras model. Solutions appear at the bottom of the notebook.
+
+<Tip>
+  Use `num_parallel_calls=tf.data.AUTOTUNE` in `map()` and `interleave()` to let TensorFlow automatically tune the degree of parallelism to available CPU cores. This is almost always faster than fixing a specific integer.
+</Tip>

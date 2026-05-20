@@ -1,0 +1,103 @@
+---
+title: "Chapter 4: Training Linear Models"
+description: "A mathematical deep-dive into linear and logistic regression, batch/stochastic/mini-batch gradient descent, polynomial features, and regularisation with Ridge, Lasso, and ElasticNet."
+---
+
+Chapter 4 opens the black box and shows exactly how linear models are trained. You will implement gradient descent by hand, then use Scikit-Learn's optimised implementations. The chapter covers the Normal Equation for linear regression, the three flavours of gradient descent, polynomial feature engineering, and regularisation techniques that prevent overfitting.
+
+## What you'll learn
+
+- Deriving and applying the Normal Equation for closed-form linear regression
+- Implementing batch gradient descent, stochastic gradient descent (SGD), and mini-batch gradient descent
+- Learning rate schedules and convergence criteria
+- Creating polynomial features with `PolynomialFeatures`
+- Diagnosing overfitting and underfitting with learning curves
+- Regularised regression: Ridge (L2), Lasso (L1), and ElasticNet
+- Early stopping as a regularisation technique
+- Logistic regression for binary and multiclass problems (Softmax regression)
+
+## Key concepts
+
+**The Normal Equation.** For linear regression, the optimal weights can be computed analytically: θ = (XᵀX)⁻¹ Xᵀy. This is exact but computationally expensive (O(n³) in the number of features), making gradient descent preferable for large datasets.
+
+**Gradient descent.** Gradient descent iteratively adjusts model parameters by moving in the direction of the steepest decrease in the loss function. *Batch* gradient descent computes the gradient over the entire training set—slow per step but accurate. *Stochastic* gradient descent (SGD) uses a single random instance per step—fast but noisy. *Mini-batch* gradient descent uses small random subsets and balances speed with accuracy, making it the most widely used variant in practice.
+
+**Polynomial features and regularisation.** Adding polynomial features (`PolynomialFeatures`) lets a linear model fit non-linear data. However, high-degree polynomials overfit easily. Ridge regression adds an L2 penalty on the weights; Lasso adds an L1 penalty that can drive some weights to exactly zero, effectively performing feature selection. ElasticNet combines both penalties.
+
+**Logistic and Softmax regression.** Logistic regression estimates the probability that an instance belongs to a positive class; the decision boundary is trained by minimising the log loss. Softmax regression generalises logistic regression to multiple classes.
+
+## Code examples
+
+**Fitting linear regression with the Normal Equation:**
+
+```python
+import numpy as np
+from sklearn.preprocessing import add_dummy_feature
+
+np.random.seed(42)
+m = 100  # number of instances
+X = 2 * np.random.rand(m, 1)      # column vector
+y = 4 + 3 * X + np.random.randn(m, 1)
+
+X_b = add_dummy_feature(X)         # add x0 = 1 to each instance
+theta_best = np.linalg.inv(X_b.T @ X_b) @ X_b.T @ y
+```
+
+**Using Scikit-Learn's `LinearRegression`:**
+
+```python
+from sklearn.linear_model import LinearRegression
+
+lin_reg = LinearRegression()
+lin_reg.fit(X, y)
+lin_reg.intercept_, lin_reg.coef_
+# (array([4.21509616]), array([[2.77011339]]))
+
+X_new = np.array([[0], [2]])
+lin_reg.predict(X_new)
+# array([[4.21509616],
+#        [9.75532293]])
+```
+
+**Batch gradient descent from scratch:**
+
+```python
+eta = 0.1        # learning rate
+n_epochs = 1000
+m = len(X_b)
+
+np.random.seed(42)
+theta = np.random.randn(2, 1)  # randomly initialised parameters
+
+for epoch in range(n_epochs):
+    gradients = 2 / m * X_b.T @ (X_b @ theta - y)
+    theta = theta - eta * gradients
+```
+
+**Ridge regression:**
+
+```python
+from sklearn.linear_model import Ridge
+
+ridge_reg = Ridge(alpha=0.1)
+ridge_reg.fit(X, y)
+ridge_reg.predict([[1.5]])
+```
+
+## Running this notebook
+
+<Steps>
+  <Step title="Open in Colab">
+    [Open in Colab](https://colab.research.google.com/github/ageron/handson-ml3/blob/main/04_training_linear_models.ipynb)
+  </Step>
+  <Step title="No data download required">
+    All datasets in this notebook are generated synthetically with NumPy, so no external downloads are needed.
+  </Step>
+  <Step title="Run cells in order">
+    Many cells build on variables defined earlier, so execute them sequentially.
+  </Step>
+</Steps>
+
+## Exercises
+
+The chapter includes seven exercises covering Ridge, Lasso, and ElasticNet regression; implementing early stopping; and training a logistic regression classifier on the iris dataset. Solutions are in the notebook.

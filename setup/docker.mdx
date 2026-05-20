@@ -1,0 +1,189 @@
+---
+title: "Run Hands-On ML notebooks with Docker and Compose"
+description: "Use the included Docker and docker-compose setup to run all notebooks in an isolated container — with optional NVIDIA GPU support and port configuration."
+---
+
+The repository includes a ready-to-use Docker configuration that lets you run the Hands-On ML notebooks without installing any Python dependencies on your host machine. All you need is Docker and docker-compose. The container is based on `continuumio/miniconda3` and runs the same `homl3` conda environment used for local installation, so your notebooks will behave identically.
+
+## Prerequisites
+
+Install [Docker](https://docs.docker.com/engine/installation/) and [Docker Compose](https://docs.docker.com/compose/install/) for your platform if you do not have them already. Some familiarity with Docker is helpful but is not required to run the notebooks.
+
+## Prepare the image
+
+You have two options: pull the prebuilt image from Docker Hub, or build it yourself.
+
+<Tabs>
+  <Tab title="Pull from Docker Hub">
+    This downloads roughly 1.9 GB of compressed data and is the fastest way to get started:
+
+    ```bash
+    docker pull ageron/handson-ml3
+    ```
+
+    <Note>
+      This is the CPU-only image. For GPU support, pull `ageron/handson-ml3:latest-gpu` instead. See the GPU section below.
+    </Note>
+  </Tab>
+  <Tab title="Build yourself">
+    Building locally ensures the image uses the latest library versions. Assuming you cloned the repository to `/path/to/project/handson-ml3`:
+
+    ```bash
+    cd /path/to/project/handson-ml3/docker
+    docker-compose build
+    ```
+
+    This takes several minutes but only needs to be done once. When it finishes, confirm the image exists:
+
+    ```bash
+    docker images
+    ```
+
+    You should see `ageron/handson-ml3` with the `latest` tag in the output.
+  </Tab>
+</Tabs>
+
+## Run the notebooks
+
+From the `docker` subdirectory of the cloned repository, start the Jupyter server:
+
+```bash
+cd /path/to/project/handson-ml3/docker
+docker-compose up
+```
+
+Docker will print a URL to the terminal that includes a login token. Open that URL in your browser to access Jupyter. If you have configured password authentication in `jupyter_notebook_config.py`, go to [localhost:8888](http://localhost:8888) instead.
+
+The server runs with the notebooks directory mounted as a volume, so any changes you make in the browser are saved back to your local files.
+
+To stop the server, press `Ctrl-C` in the terminal.
+
+## docker-compose.yml overview
+
+The included `docker-compose.yml` configures the container with the following defaults:
+
+```yaml
+version: "3"
+services:
+  handson-ml3:
+    build:
+      context: ../
+      dockerfile: ./docker/Dockerfile
+      args:
+        - username=devel
+        - userid=1000
+    container_name: handson-ml3
+    image: ageron/handson-ml3:latest
+    restart: unless-stopped
+    ports:
+      - "8888:8888"
+      - "6006:6006"
+    volumes:
+      - ../:/home/devel/handson-ml3
+    command: /opt/conda/envs/homl3/bin/jupyter lab --ip='0.0.0.0' --port=8888 --no-browser
+```
+
+Key points:
+
+- **Port 8888** — Jupyter Notebook/Lab
+- **Port 6006** — TensorBoard
+- **Volume** — the project directory is mounted into the container, so notebook changes persist on your host machine
+
+## Running additional commands inside the container
+
+While the Jupyter server is running, open a bash shell inside the container:
+
+```bash
+docker-compose exec handson-ml3 bash
+```
+
+From this shell you can run TensorBoard, use `nbdiff` to compare notebook versions, or run any other command in the `homl3` environment.
+
+## Using make (optional)
+
+If you have `make` installed, you can use it as a shorthand for common docker-compose commands. For example:
+
+```bash
+make rebuild   # equivalent to: docker-compose build --no-cache
+make exec      # equivalent to: docker-compose exec handson-ml3 bash
+```
+
+Check the `Makefile` in the `docker` directory for the full list of available targets.
+
+## GPU support on Linux
+
+GPU acceleration inside Docker requires Linux and an NVIDIA GPU with Compute Capability 3.5 or higher.
+
+<Steps>
+  <Step title="Install the NVIDIA driver and container toolkit">
+    Download and install the latest NVIDIA driver for your card from [nvidia.com](https://www.nvidia.com/Download/index.aspx?lang=en-us).
+
+    For Docker 19.03 and above, install `nvidia-container-toolkit`. For earlier Docker versions, install `nvidia-docker2` instead. See [NVidia Docker support](https://github.com/NVIDIA/nvidia-docker) for instructions.
+  </Step>
+  <Step title="Edit docker-compose.yml for GPU">
+    Open `docker/docker-compose.yml` in your editor and make two changes:
+
+    - Replace `dockerfile: ./docker/Dockerfile` with `dockerfile: ./docker/Dockerfile.gpu`
+    - Replace `image: ageron/handson-ml3:latest` with `image: ageron/handson-ml3:latest-gpu`
+
+    If you are using docker-compose version 1.28 or above, also uncomment the `deploy` section:
+
+    ```yaml
+    deploy:
+      resources:
+        reservations:
+          devices:
+          - capabilities: [gpu]
+    ```
+  </Step>
+  <Step title="Pull or build the GPU image">
+    Pull the prebuilt GPU image (over 3.5 GB):
+
+    ```bash
+    docker pull ageron/handson-ml3:latest-gpu
+    ```
+
+    Or build it yourself:
+
+    ```bash
+    cd /path/to/project/handson-ml3/docker
+    docker-compose build
+    ```
+  </Step>
+  <Step title="Run with docker-compose (version 1.28+)">
+    ```bash
+    cd /path/to/project/handson-ml3/docker
+    docker-compose up
+    ```
+
+    Open the URL printed to the terminal. To verify GPU access, run in a notebook:
+
+    ```python
+    import tensorflow as tf
+    tf.config.list_physical_devices("GPU")
+    ```
+
+    A list of your GPU device(s) confirms that TensorFlow can see the hardware.
+  </Step>
+</Steps>
+
+### Running with docker run (older docker-compose)
+
+If your docker-compose version is earlier than 1.28, use `docker run` directly. For Docker 19.03 and above:
+
+```bash
+cd /path/to/project/handson-ml3
+docker run --name handson-ml3 --gpus all -p 8888:8888 -p 6006:6006 \
+  --log-opt mode=non-blocking --log-opt max-buffer-size=50m \
+  -v `pwd`:/home/devel/handson-ml3 \
+  ageron/handson-ml3:latest-gpu \
+  /opt/conda/envs/homl3/bin/jupyter notebook --ip='0.0.0.0' --port=8888 --no-browser
+```
+
+For older Docker versions, replace `--gpus all` with `--runtime=nvidia`.
+
+When you are done and want to remove the container (this does not remove the image or your notebooks):
+
+```bash
+docker rm handson-ml3
+```

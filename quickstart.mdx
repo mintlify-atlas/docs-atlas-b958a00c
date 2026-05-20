@@ -1,81 +1,117 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
-icon: 'rocket'
+title: "Quickstart: run the Hands-On ML notebooks now"
+description: "Open any notebook instantly in Google Colab, Kaggle, Binder, or Deepnote — or set up a local environment with conda and Jupyter in three steps."
 ---
 
-## Get started in three steps
+The quickest way to run the Hands-On ML notebooks is directly in the cloud — no installation, no package management, just click a link and start coding. If you prefer to work locally, you can have a full environment running in about ten minutes using Anaconda. This page covers both paths.
 
-Get your documentation site running locally and make your first customization.
+## Cloud options (no installation required)
 
-### Step 1: Set up your local environment
+You can open any notebook in several hosted environments. Google Colab is the recommended option because it offers free GPU access, deep integration with Google Drive, and the most consistent experience with the book's code.
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
+<Tabs>
+  <Tab title="Google Colab">
+    Google Colab is the recommended platform. It runs on Google's infrastructure, provides optional free GPU/TPU access, and requires only a Google account.
 
-### Step 2: Deploy your changes
+    [Open in Google Colab](https://colab.research.google.com/github/ageron/handson-ml3/blob/main/)
 
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
+    <Warning>
+      Colab provides a temporary environment. Any files you create or data you download will be deleted when the session ends. Download anything you want to keep, or save notebooks to your Google Drive.
+    </Warning>
+  </Tab>
+  <Tab title="Kaggle">
+    Kaggle Notebooks offer free GPU access and a persistent workspace tied to your Kaggle account. The handson-ml3 notebooks are available directly on Kaggle.
 
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
+    [Open in Kaggle](https://homl.info/kaggle3/)
 
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
+    <Note>
+      Kaggle has not been fully tested with every notebook. Most code runs correctly, but you may encounter minor environment differences.
+    </Note>
+  </Tab>
+  <Tab title="Binder">
+    Binder builds a live, temporary Jupyter environment directly from the GitHub repository. No account required.
 
-### Step 3: Go live
+    [Launch in Binder](https://mybinder.org/v2/gh/ageron/handson-ml3/HEAD?filepath=%2Findex.ipynb)
 
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
+    <Note>
+      Binder sessions are temporary and can be slow to start. It has not been fully tested with every notebook.
+    </Note>
+  </Tab>
+  <Tab title="Deepnote">
+    Deepnote provides a collaborative notebook environment with persistent storage and team features.
 
-## Next steps
+    [Launch in Deepnote](https://homl.info/deepnote3/)
 
-Now that you have your docs running, explore these key features:
+    <Note>
+      Deepnote has not been fully tested with every notebook in this repository.
+    </Note>
+  </Tab>
+</Tabs>
+
+## Local setup (3 steps)
+
+Running locally gives you full control over your environment, persistent storage, and the ability to work offline. The setup uses Anaconda (or Miniconda) to create an isolated Python 3.10 environment with all required libraries.
+
+<Steps>
+  <Step title="Clone the repository and install Anaconda">
+    Install [Anaconda](https://www.anaconda.com/products/distribution) or [Miniconda](https://docs.conda.io/en/latest/miniconda.html) if you do not have it already. Then clone the repository:
+
+    ```bash
+    git clone https://github.com/ageron/handson-ml3.git
+    cd handson-ml3
+    ```
+
+    You will also need [git](https://git-scm.com/downloads). Alternatively, download [main.zip](https://github.com/ageron/handson-ml3/archive/main.zip) and unzip it manually.
+  </Step>
+  <Step title="Create and activate the conda environment">
+    From inside the `handson-ml3` directory, create the `homl3` environment from the included `environment.yml` file. This installs Python 3.10 along with Scikit-Learn, TensorFlow, Keras, and all other required libraries:
+
+    ```bash
+    conda env create -f environment.yml
+    conda activate homl3
+    ```
+  </Step>
+  <Step title="Register the kernel and launch Jupyter">
+    Register the `homl3` environment as a Jupyter kernel so the notebooks use the correct Python installation:
+
+    ```bash
+    python -m ipykernel install --user --name=python3
+    jupyter notebook
+    ```
+
+    Your browser will open Jupyter's file browser. Click `index.ipynb` to see all chapters and start navigating.
+  </Step>
+</Steps>
+
+<Tip>
+  If you have an NVIDIA GPU with Compute Capability 3.5 or higher, you can enable GPU acceleration for TensorFlow. See the [full installation guide](/setup/installation) for GPU setup steps including CUDA and cuDNN.
+</Tip>
+
+## Prerequisites checklist
+
+Before you start, make sure you have the following:
+
+- **Python** — the conda environment installs Python 3.10 automatically
+- **git** — needed to clone the repository (or download the zip instead)
+- **Anaconda or Miniconda** — for local setup only
+- **A Google account** — for Colab only
+- **Basic Python knowledge** — familiarity with functions, loops, and importing libraries
+
+No prior machine learning experience is required. The book and notebooks build up every concept from scratch.
+
+## What's next
 
 <CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
+  <Card title="Full installation guide" icon="list-check" href="/setup/installation">
+    Detailed walkthrough including GPU setup and update instructions
+  </Card>
+  <Card title="Docker setup" icon="docker" href="/setup/docker">
+    Run notebooks in an isolated container without touching your system Python
+  </Card>
+  <Card title="Cloud platforms compared" icon="cloud" href="/setup/cloud">
+    Detailed comparison of Colab, Kaggle, Binder, and Deepnote
+  </Card>
+  <Card title="Project overview" icon="book-open" href="/introduction">
+    All 19 chapters at a glance with topic summaries
+  </Card>
 </CardGroup>
-
-<Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
-</Note>

@@ -1,0 +1,147 @@
+---
+title: "Extra notebooks: autodiff and neural net architectures"
+description: "Supplementary notebooks on automatic differentiation and extra neural network architectures not covered in the main chapters of the handson-ml3 series."
+---
+
+Beyond the 19 main chapter notebooks, the handson-ml3 repository includes supplementary notebooks that go deeper on selected topics. This page describes two of them — automatic differentiation and extra neural network architectures — plus one additional notebook on gradient descent comparisons. These notebooks are labelled as appendix material in the book.
+
+<CardGroup cols={2}>
+
+<Card
+  title="Automatic differentiation (Appendix D)"
+  icon="function"
+  href="https://colab.research.google.com/github/ageron/handson-ml3/blob/main/extra_autodiff.ipynb"
+>
+  Toy implementations of numeric differentiation, forward-mode autodiff using dual numbers, and reverse-mode autodiff (backpropagation). Includes a full TensorFlow `GradientTape` example. Open in Colab to run interactively.
+</Card>
+
+<Card
+  title="Extra ANN architectures"
+  icon="network-wired"
+  href="https://colab.research.google.com/github/ageron/handson-ml3/blob/main/extra_ann_architectures.ipynb"
+>
+  Quick overviews of historically important neural network architectures: Hopfield networks, Boltzmann machines, restricted Boltzmann machines (RBMs), and deep belief nets. Open in Colab to run interactively.
+</Card>
+
+<Card
+  title="Gradient descent comparison"
+  icon="chart-line"
+  href="https://colab.research.google.com/github/ageron/handson-ml3/blob/main/extra_gradient_descent_comparison.ipynb"
+>
+  Visual comparison of gradient descent variants — batch, stochastic, and mini-batch — on the same loss surface. Useful for building intuition before studying optimizers in depth.
+</Card>
+
+</CardGroup>
+
+---
+
+## Automatic differentiation
+
+The `extra_autodiff.ipynb` notebook explains how modern deep-learning frameworks compute gradients automatically. It starts from first principles and builds up to TensorFlow's `GradientTape`.
+
+### The problem
+
+Computing gradients analytically for a neural network with millions of parameters is impractical. Consider even a simple function:
+
+```python
+def f(x, y):
+    return x * x * y + y + 2
+
+# Exact partial derivatives:
+# ∂f/∂x = 2xy
+# ∂f/∂y = x² + 1
+def df(x, y):
+    return 2 * x * y, x * x + 1
+
+df(3, 4)   # (24, 10)
+```
+
+For networks with complex, deeply nested operations, deriving these by hand is impossible. Three approaches are covered in the notebook:
+
+### 1. Numeric differentiation
+
+Approximate the derivative using the finite-difference formula. Easy to implement but requires one forward pass per parameter:
+
+```python
+def gradients(func, vars_list, eps=0.0001):
+    partial_derivatives = []
+    base_func_eval = func(*vars_list)
+    for idx in range(len(vars_list)):
+        tweaked_vars = vars_list[:]
+        tweaked_vars[idx] += eps
+        tweaked_func_eval = func(*tweaked_vars)
+        derivative = (tweaked_func_eval - base_func_eval) / eps
+        partial_derivatives.append(derivative)
+    return partial_derivatives
+
+gradients(f, [3, 4])
+# [24.000400000048216, 10.000000000047748]
+```
+
+### 2. Forward-mode autodiff (dual numbers)
+
+Represent every number as `a + bε` where `ε² = 0`. The `b` component automatically carries the derivative through every arithmetic operation. Efficient when there are few inputs and many outputs.
+
+### 3. Reverse-mode autodiff (backpropagation)
+
+Evaluate the function forward and record operations in a computation graph. Then propagate gradients backwards using the chain rule. This requires only one forward pass and one backward pass, regardless of the number of parameters — which is why it is used in all major deep-learning frameworks.
+
+### TensorFlow `GradientTape`
+
+TensorFlow implements reverse-mode autodiff through `tf.GradientTape`:
+
+```python
+import tensorflow as tf
+
+x = tf.Variable(3.)
+y = tf.Variable(4.)
+
+with tf.GradientTape() as tape:
+    f = x * x * y + y + 2
+
+jacobians = tape.gradient(f, [x, y])
+# [<tf.Tensor: numpy=24.0>, <tf.Tensor: numpy=10.0>]
+```
+
+Second-order derivatives (Hessians) require a persistent tape:
+
+```python
+x = tf.Variable(3.)
+y = tf.Variable(4.)
+
+with tf.GradientTape(persistent=True) as tape:
+    f = x * x * y + y + 2
+    df_dx, df_dy = tape.gradient(f, [x, y])
+
+d2f_d2x,  d2f_dydx = tape.gradient(df_dx, [x, y])
+d2f_dxdy, d2f_d2y  = tape.gradient(df_dy, [x, y])
+del tape
+
+# hessians: [[8.0, 6.0], [6.0, None]]
+```
+
+---
+
+## Extra neural network architectures
+
+The `extra_ann_architectures.ipynb` notebook surveys architectures that predate modern deep learning but are still referenced in the literature and occasionally used in practice.
+
+### Hopfield networks
+
+Introduced by W. A. Little (1974) and popularised by J. Hopfield (1982). Fully connected associative memory networks that can store and recall patterns. Memory capacity is approximately 14% of the number of neurons, and spurious (unlearned) patterns can emerge. Largely superseded for practical tasks but historically important.
+
+### Boltzmann machines
+
+Invented in 1985 by Geoffrey Hinton and Terrence Sejnowski. Fully connected stochastic ANNs that learn a probability distribution over binary inputs. Training is computationally expensive due to the need to reach thermal equilibrium.
+
+### Restricted Boltzmann machines (RBMs)
+
+A simplified Boltzmann machine with no connections within the visible layer or within the hidden layer — only connections between layers. The restriction makes training tractable via contrastive divergence. RBMs were the building block of deep belief nets.
+
+### Deep belief nets (DBNs)
+
+Stack of RBMs trained greedily one layer at a time. DBNs were state of the art in deep learning until around 2012, when backpropagation-trained deep networks trained with large datasets and GPUs overtook them. Still the subject of active research.
+
+<Note>
+These architectures are covered in the extra notebook rather than the main chapters because they are less commonly used in contemporary ML practice. However, understanding them provides useful historical context and helps explain why modern architectures were designed the way they are.
+</Note>

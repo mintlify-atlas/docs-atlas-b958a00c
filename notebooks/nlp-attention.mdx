@@ -1,0 +1,137 @@
+---
+title: "NLP with RNNs, Attention, and Transformers (Ch. 16)"
+description: "Build character-level RNNs, attention-based translators, and Transformers from scratch. Use Hugging Face pipelines for DistilBERT sentiment and T5 tasks."
+---
+
+Chapter 16 covers natural language processing from first principles, building up from a character-level Shakespeare text generator through attention-augmented encoder-decoder translation to a from-scratch Transformer. The chapter also shows how to leverage Hugging Face Transformers for large pretrained models like DistilBERT (sentiment analysis) and T5 (text-to-text tasks), and briefly introduces vision transformers (ViT).
+
+## What you'll learn
+
+- Building character-level datasets with **`TextVectorization`** and `tf.data`
+- Training a **character-level RNN** (GRU) text generator on Shakespeare
+- **Stateful RNNs** and how they carry state across batches
+- Sentiment analysis with word-level embeddings and **masking**
+- Encoder-decoder architecture for English-to-Spanish **translation**
+- The **attention mechanism**: how query, key, and value work
+- Multi-head attention and the full **Transformer** architecture
+- Positional encoding
+- Using **Hugging Face Transformers**: `pipeline`, `DistilBERT`, `T5`
+- Introduction to **Vision Transformers (ViT)**
+
+## Key concepts
+
+### Character-level text generation
+
+The notebook encodes the complete Shakespeare corpus (1.1 M characters) as integers using `TextVectorization`. A sliding-window dataset is created where each sample is a sequence of `length` characters and the target is the same sequence shifted by one position — the model learns to predict the next character given the preceding context. After training, you can sample from the model iteratively to generate new text.
+
+### Encoder-decoder and attention
+
+The classic encoder-decoder RNN compresses the entire source sentence into a single context vector, which the decoder uses to produce each output token. This bottleneck limits performance on long sentences. **Attention** allows the decoder to look back at all encoder hidden states, computing a weighted combination based on relevance to the current decoding step. The weights (alignment scores) are learned end-to-end and are interpretable: they show which source tokens the model attends to when generating each target word.
+
+### The Transformer
+
+Transformers replace recurrence entirely with **multi-head self-attention**. Every position in the sequence attends to every other position simultaneously, making the architecture highly parallelisable. The key components are:
+- **Multi-head attention** — multiple attention heads capture different types of relationships.
+- **Positional encoding** — sinusoidal signals added to embeddings to inject sequence order.
+- **Feed-forward sublayers** — position-wise two-layer MLPs applied identically to each token.
+- **Layer normalisation and residual connections** — for training stability.
+
+Transformers have become the dominant architecture for NLP and are increasingly used in vision and audio.
+
+### Hugging Face Transformers
+
+The `transformers` library provides a unified API for hundreds of pretrained models. `pipeline("sentiment-analysis")` automatically downloads a model and tokeniser; you call it like a function. For fine-tuning, you wrap a pretrained encoder (e.g. DistilBERT) with a custom classification head and train as usual in Keras.
+
+## Code examples
+
+### Building the Shakespeare character-level dataset
+
+```python
+import os
+import tensorflow as tf
+
+os.environ["TF_USE_LEGACY_KERAS"] = "1"
+import tf_keras  # ensures tf.keras points to Keras 2
+
+shakespeare_url = "https://homl.info/shakespeare"
+filepath = tf.keras.utils.get_file("shakespeare.txt", shakespeare_url)
+with open(filepath) as f:
+    shakespeare_text = f.read()
+
+text_vec_layer = tf.keras.layers.TextVectorization(split="character",
+                                                   standardize="lower")
+text_vec_layer.adapt([shakespeare_text])
+encoded = text_vec_layer([shakespeare_text])[0]
+encoded -= 2  # drop pad and unknown tokens
+n_tokens = text_vec_layer.vocabulary_size() - 2  # 39 distinct characters
+```
+
+### Creating sliding-window training set
+
+```python
+def to_dataset(sequence, length, shuffle=False, seed=None, batch_size=32):
+    ds = tf.data.Dataset.from_tensor_slices(sequence)
+    ds = ds.window(length + 1, shift=1, drop_remainder=True)
+    ds = ds.flat_map(lambda window_ds: window_ds.batch(length + 1))
+    if shuffle:
+        ds = ds.shuffle(100_000, seed=seed)
+    ds = ds.batch(batch_size)
+    return ds.map(lambda window: (window[:, :-1], window[:, 1:])).prefetch(1)
+
+length = 100
+tf.random.set_seed(42)
+train_set = to_dataset(encoded[:1_000_000], length=length, shuffle=True, seed=42)
+valid_set = to_dataset(encoded[1_000_000:1_060_000], length=length)
+```
+
+### Hugging Face sentiment pipeline
+
+```python
+from transformers import pipeline
+
+classifier = pipeline("sentiment-analysis")  # downloads DistilBERT by default
+result = classifier(["I love this book!", "This was a waste of time."])
+# [{'label': 'POSITIVE', 'score': 0.9998}, {'label': 'NEGATIVE', 'score': 0.9997}]
+```
+
+### Transformer multi-head attention layer
+
+```python
+import tensorflow as tf
+
+# Keras has a built-in MultiHeadAttention layer
+attention_layer = tf.keras.layers.MultiHeadAttention(
+    num_heads=8, key_dim=64, dropout=0.1)
+
+# In a Transformer encoder block:
+attn_output = attention_layer(query=inputs, key=inputs, value=inputs,
+                              use_causal_mask=False)
+```
+
+## Running this notebook
+
+<Steps>
+  <Step title="Enable a GPU">
+    Training the character-level GRU can take over 24 hours on CPU. A GPU reduces this to roughly 1–2 hours. In Colab: **Runtime → Change runtime type → GPU**.
+  </Step>
+  <Step title="Open in Colab">
+    [Open in Colab](https://colab.research.google.com/github/ageron/handson-ml3/blob/main/16_nlp_with_rnns_and_attention.ipynb)
+  </Step>
+  <Step title="Install dependencies">
+    ```bash
+    pip install -r requirements.txt
+    ```
+    The Hugging Face section requires `transformers~=4.35.0`.
+  </Step>
+  <Step title="Keras 2 compatibility">
+    This chapter sets `TF_USE_LEGACY_KERAS=1` and imports `tf_keras` to use Keras 2. This is required because stateful RNNs and ragged tensors work differently in Keras 3.
+  </Step>
+</Steps>
+
+## Exercises
+
+Exercises include training an English-to-French translation model, implementing positional encoding from scratch, and fine-tuning a pretrained transformer on a custom classification task. Solutions are in the notebook.
+
+<Warning>
+  This chapter uses Keras 2 (`TF_USE_LEGACY_KERAS=1`) due to compatibility issues with stateful RNNs and ragged tensors in Keras 3. Set the environment variable before importing TensorFlow.
+</Warning>

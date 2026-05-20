@@ -1,0 +1,75 @@
+---
+title: "Hands-On Machine Learning: notebooks for the book"
+description: "Companion Jupyter notebooks for the O'Reilly book by Aurélien Géron — 19 chapters from classical ML with Scikit-Learn to deep learning with Keras and TensorFlow 2."
+---
+
+This repository is the official companion code for [Hands-on Machine Learning with Scikit-Learn, Keras and TensorFlow (3rd edition)](https://homl.info/er3), an O'Reilly book by Aurélien Géron. It contains runnable Jupyter notebooks for every chapter of the book, complete with working code, visualizations, and exercise solutions. Whether you are following along with a physical copy of the book or working through the material independently, these notebooks let you experiment with every concept hands-on.
+
+## What the project covers
+
+The repository spans two major parts of the book, covering the full arc of modern machine learning.
+
+### Part I: The fundamentals of machine learning
+
+| # | Chapter | Key topics |
+|---|---------|-----------|
+| 1 | The machine learning landscape | Types of ML, model selection, key challenges |
+| 2 | End-to-end machine learning project | Pipelines, feature engineering, evaluation strategy |
+| 3 | Classification | Binary/multiclass classifiers, precision/recall, ROC curves |
+| 4 | Training linear models | Linear and polynomial regression, regularization |
+| 5 | Support vector machines | Linear SVM, kernel trick, SVR |
+| 6 | Decision trees | CART algorithm, pruning, visualization with Graphviz |
+| 7 | Ensemble learning and random forests | Bagging, boosting, stacking, XGBoost |
+| 8 | Dimensionality reduction | PCA, Kernel PCA, t-SNE |
+| 9 | Unsupervised learning techniques | K-Means, DBSCAN, Gaussian mixture models |
+
+### Part II: Neural networks and deep learning
+
+| # | Chapter | Key topics |
+|---|---------|-----------|
+| 10 | Introduction to artificial neural networks with Keras | Sequential and Functional API, callbacks, hyperparameter tuning |
+| 11 | Training deep neural networks | Batch normalization, dropout, learning rate schedules |
+| 12 | Custom models and training with TensorFlow | Custom layers, training loops, autodiff |
+| 13 | Loading and preprocessing data with TensorFlow | tf.data API, TF Datasets, preprocessing layers |
+| 14 | Deep computer vision using CNNs | ResNet, EfficientNet, MobileNet, object detection |
+| 15 | Processing sequences using RNNs and CNNs | LSTMs, GRUs, WaveNet, ARMA models, time series |
+| 16 | Natural language processing with RNNs and attention | Transformers, encoder–decoder, BERT, T5, DistilBERT |
+| 17 | Autoencoders, GANs, and diffusion models | VAEs, StyleGAN, denoising diffusion probabilistic models |
+| 18 | Reinforcement learning | Policy gradients, DQN, actor-critic methods, Gymnasium |
+| 19 | Training and deploying TensorFlow models at scale | Vertex AI, TF Serving, distributed training, TensorFlow.js |
+
+### Supplementary notebooks
+
+In addition to the 19 chapter notebooks, the repository includes tutorials on the scientific Python tools you will use throughout the book:
+
+- **NumPy** — n-dimensional arrays and numerical computing
+- **Matplotlib** — plotting and visualization
+- **Pandas** — data analysis and manipulation
+- **Linear algebra** — math prerequisites for ML
+- **Differential calculus** — math prerequisites for backpropagation
+
+## Who this is for
+
+These notebooks are designed for developers, students, and data scientists who want to learn machine learning by writing and running real code. You should have some familiarity with Python — if you can read a `for` loop and understand what a function is, you are ready to start. Prior knowledge of NumPy and basic statistics is helpful but not required; the supplementary notebooks cover these topics.
+
+You do not need a machine learning background. The book and notebooks build up every concept from first principles, starting with simple linear models and ending with state-of-the-art deep learning architectures.
+
+## Prerequisites summary
+
+- **Python 3.7 or later** (Python 3.10 recommended — it is what the conda environment installs)
+- **NumPy** — for understanding array operations in early chapters
+- **High school math** — algebra and basic calculus; the math notebooks fill any gaps
+- **A modern browser** — if you are running in the cloud, nothing else is needed
+
+## Get started
+
+The fastest way to start is to open the notebooks directly in the cloud — no installation required. See the [quickstart guide](/quickstart) for cloud options and a local setup summary.
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Run notebooks in the cloud or locally in minutes
+  </Card>
+  <Card title="Local installation" icon="download" href="/setup/installation">
+    Full walkthrough for setting up Anaconda and Jupyter
+  </Card>
+</CardGroup>

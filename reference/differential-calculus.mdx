@@ -1,0 +1,163 @@
+---
+title: "Differential calculus for machine learning and backprop"
+description: "Derivatives, partial derivatives, gradients, the chain rule, Jacobians, Hessians, and how backpropagation uses calculus to train neural networks."
+---
+
+Differential calculus studies how functions change. In deep learning, it provides the mathematical machinery for training: given a loss function that measures how wrong a model is, calculus tells us in which direction to adjust every parameter to reduce that loss. This page covers the key concepts as presented in `math_differential_calculus.ipynb` and `extra_autodiff.ipynb`.
+
+## Slope of a line and the derivative
+
+The slope of a straight line between points A and B is **rise over run**:
+
+```
+slope = Δy / Δx = (y_B - y_A) / (x_B - x_A)
+```
+
+For a curved function `f(x)`, the **derivative** `f'(x)` (also written `df/dx`) is the instantaneous rate of change at a point. It is defined as the limit of the slope between two points as the distance between them approaches zero:
+
+```
+f'(x) = lim_{ε → 0} [f(x + ε) - f(x)] / ε
+```
+
+This limit is the slope of the tangent line to the curve at `x`. For example, if `f(x) = x²` then `f'(x) = 2x`.
+
+## Numerical differentiation
+
+When an analytic formula is not available, derivatives can be approximated numerically using the definition above:
+
+```python
+def gradients(func, vars_list, eps=0.0001):
+    partial_derivatives = []
+    base_func_eval = func(*vars_list)
+    for idx in range(len(vars_list)):
+        tweaked_vars = vars_list[:]
+        tweaked_vars[idx] += eps
+        tweaked_func_eval = func(*tweaked_vars)
+        derivative = (tweaked_func_eval - base_func_eval) / eps
+        partial_derivatives.append(derivative)
+    return partial_derivatives
+```
+
+Applied to `f(x, y) = x²y + y + 2`:
+
+```python
+def f(x, y):
+    return x * x * y + y + 2
+
+gradients(f, [3, 4])
+# [24.000400000048216, 10.000000000047748]
+```
+
+The exact values are `∂f/∂x = 2xy = 24` and `∂f/∂y = x² + 1 = 10`.
+
+<Note>
+Numerical differentiation is accurate enough for checking implementations but is too slow for production use in deep learning: computing gradients for `n` parameters requires `n` separate forward passes, which is prohibitive for networks with millions of parameters.
+</Note>
+
+## Partial derivatives
+
+When a function depends on multiple inputs, the **partial derivative** `∂f/∂x` measures the rate of change with respect to one variable while holding all others constant.
+
+For `f(x, y) = x²y + y + 2`:
+
+```
+∂f/∂x = 2xy
+∂f/∂y = x² + 1
+```
+
+At `x = 3, y = 4`: `∂f/∂x = 24` and `∂f/∂y = 10`.
+
+## Gradient
+
+The **gradient** of a scalar-valued function `f` is the vector of all its partial derivatives:
+
+```
+∇f = [∂f/∂x₁, ∂f/∂x₂, ..., ∂f/∂xₙ]
+```
+
+The gradient points in the direction of steepest ascent. **Gradient descent** moves in the opposite direction — toward the minimum of the loss function.
+
+## The chain rule
+
+The chain rule is the cornerstone of backpropagation. If `z = v(u(x))` (a composition of two functions), then:
+
+```
+dz/dx = (ds/dx) · (dz/ds)   where s = u(x)
+```
+
+For a longer chain `z = f_n(f_{n-1}(...f_1(x)...))`:
+
+```
+dz/dx = (∂s₁/∂x) · (∂s₂/∂s₁) · ... · (∂sₙ/∂sₙ₋₁) · (∂z/∂sₙ)
+```
+
+**Backpropagation** is reverse-mode automatic differentiation: it computes these terms from right to left (from the output back to the inputs), which is efficient when there are many inputs (parameters) and few outputs (the loss scalar).
+
+## Second derivatives: Jacobians and Hessians
+
+The **Jacobian** of a vector-valued function is the matrix of all first-order partial derivatives.
+
+The **Hessian** is the matrix of second-order partial derivatives of a scalar function:
+
+```python
+def df(x, y):
+    return 2*x*y, x*x + 1    # analytical first derivatives
+
+def d2f(x, y):
+    return [2*y, 2*x], [2*x, 0]   # analytical second derivatives (Hessian)
+
+d2f(3, 4)
+# ([8, 6], [6, 0])
+```
+
+The Hessian is used in second-order optimizers (e.g., L-BFGS). For large models it is too expensive to compute directly, but it informs adaptive learning rate methods like Adam.
+
+## Automatic differentiation with TensorFlow
+
+TensorFlow's `tf.GradientTape` records all operations performed on `tf.Variable` objects and can then differentiate the result:
+
+```python
+import tensorflow as tf
+
+x = tf.Variable(3.)
+y = tf.Variable(4.)
+
+with tf.GradientTape() as tape:
+    f = x * x * y + y + 2
+
+jacobians = tape.gradient(f, [x, y])
+# [<tf.Tensor: numpy=24.0>, <tf.Tensor: numpy=10.0>]
+```
+
+For second-order derivatives, use a persistent tape:
+
+```python
+x = tf.Variable(3.)
+y = tf.Variable(4.)
+
+with tf.GradientTape(persistent=True) as tape:
+    f = x * x * y + y + 2
+    df_dx, df_dy = tape.gradient(f, [x, y])
+
+d2f_d2x,  d2f_dydx = tape.gradient(df_dx, [x, y])
+d2f_dxdy, d2f_d2y  = tape.gradient(df_dy, [x, y])
+del tape
+
+hessians = [[d2f_d2x, d2f_dydx], [d2f_dxdy, d2f_d2y]]
+# [[8.0, 6.0], [6.0, None]]
+```
+
+<Note>
+When a tensor does not depend on a variable at all, `tape.gradient` returns `None` rather than 0. Always handle `None` values when assembling Hessians or Jacobians in code.
+</Note>
+
+## Forward mode vs. reverse mode
+
+Both modes implement the chain rule but traverse it in opposite directions:
+
+- **Forward mode**: compute `∂s₁/∂x` first, then `∂s₂/∂s₁`, and so on toward the output. Efficient when there are few inputs and many outputs.
+- **Reverse mode** (backpropagation): compute `∂z/∂sₙ` first, then back toward the inputs. Efficient when there are many inputs (model parameters) and few outputs (the loss). This is why all major deep-learning frameworks use reverse mode.
+
+<Tip>
+Deep neural networks typically have thousands to billions of parameters (inputs) and a single scalar loss (output). Reverse-mode autodiff computes the full gradient in roughly the same compute time as one forward pass — making training tractable.
+</Tip>

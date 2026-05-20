@@ -1,24 +1,11 @@
 {
-  "$schema": "https://mintlify.com/docs.json",
-  "name": "Homl",
+  "projectType": "ai-ml",
+  "projectName": "Hands-On Machine Learning (3rd Edition)",
+  "projectDescription": "A comprehensive collection of Jupyter notebooks teaching Machine Learning and Deep Learning fundamentals using Scikit-Learn, Keras, and TensorFlow 2.",
   "theme": "palm",
-  "colors": {
-    "primary": "#2a8088",
-    "light": "#90c4c4",
-    "dark": "#d3e5e7"
-  },
-  "favicon": "https://media.brand.dev/2c9ae409-88af-4486-9508-d31777955783.png",
-  "navbar": {
-    "primary": {
-      "type": "github",
-      "href": "https://github.com/ageron/handson-ml3"
-    }
-  },
-  "footer": {
-    "socials": {
-      "github": "https://github.com/ageron/handson-ml3"
-    }
-  },
+  "primaryColor": "#2a8088",
+  "lightColor": "#90c4c4",
+  "darkColor": "#d3e5e7",
   "navigation": {
     "tabs": [
       {
@@ -96,5 +83,38 @@
         ]
       }
     ]
-  }
+  },
+  "keyFeatures": [
+    "19 Jupyter notebooks covering ML and DL from fundamentals to advanced topics",
+    "Hands-on code examples using Scikit-Learn, Keras, and TensorFlow 2",
+    "End-to-end ML project walkthrough with real-world datasets",
+    "Deep learning coverage: CNNs, RNNs, Transformers, GANs, and Diffusion Models",
+    "Reinforcement Learning with OpenAI Gymnasium",
+    "Deployment at scale with Google Vertex AI and TensorFlow Serving",
+    "Scientific Python tutorials (NumPy, Matplotlib, Pandas)",
+    "Math prerequisites: Linear Algebra and Differential Calculus",
+    "Docker and cloud (Colab/Kaggle/Binder) support for easy environment setup",
+    "Exercise solutions included at the end of each notebook"
+  ],
+  "publicApiSurface": [
+    "Chapter 1: The Machine Learning Landscape",
+    "Chapter 2: End-to-End Machine Learning Project",
+    "Chapter 3: Classification",
+    "Chapter 4: Training Linear Models",
+    "Chapter 5: Support Vector Machines",
+    "Chapter 6: Decision Trees",
+    "Chapter 7: Ensemble Learning and Random Forests",
+    "Chapter 8: Dimensionality Reduction",
+    "Chapter 9: Unsupervised Learning Techniques",
+    "Chapter 10: Artificial Neural Nets with Keras",
+    "Chapter 11: Training Deep Neural Networks",
+    "Chapter 12: Custom Models and Training with TensorFlow",
+    "Chapter 13: Loading and Preprocessing Data",
+    "Chapter 14: Deep Computer Vision Using CNNs",
+    "Chapter 15: Processing Sequences Using RNNs and CNNs",
+    "Chapter 16: Natural Language Processing with RNNs and Attention",
+    "Chapter 17: Autoencoders, GANs, and Diffusion Models",
+    "Chapter 18: Reinforcement Learning",
+    "Chapter 19: Training and Deploying TensorFlow Models at Scale"
+  ]
 }

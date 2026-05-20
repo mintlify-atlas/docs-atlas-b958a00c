@@ -1,0 +1,109 @@
+---
+title: "Chapter 7: Ensemble Learning and Random Forests"
+description: "Building powerful ensembles with voting classifiers, bagging, random forests, boosting (AdaBoost, Gradient Boosting, XGBoost), and stacking using Scikit-Learn."
+---
+
+Chapter 7 shows how combining many weak learners into an ensemble produces a stronger predictor—the wisdom-of-crowds effect applied to machine learning. You will implement voting classifiers, bagging, random forests, boosting methods (AdaBoost and Gradient Boosting), and stacking, and understand when each technique is most appropriate.
+
+## What you'll learn
+
+- Hard and soft voting classifiers with `VotingClassifier`
+- Bagging and pasting with `BaggingClassifier`
+- Out-of-bag (OOB) evaluation
+- `RandomForestClassifier` and extra-trees (`ExtraTreesClassifier`)
+- Feature importance scores via `feature_importances_`
+- Boosting: `AdaBoostClassifier` and `GradientBoostingClassifier`
+- XGBoost via `xgboost.XGBClassifier`
+- Early stopping for gradient boosting
+- Stacking with `StackingClassifier`
+
+## Key concepts
+
+**Voting classifiers.** A voting classifier aggregates the predictions of multiple base classifiers. *Hard voting* takes the majority class vote. *Soft voting* averages the predicted class probabilities and then takes the class with the highest probability; this typically outperforms hard voting when the base classifiers are well-calibrated.
+
+**Bagging and Random Forests.** Bagging (Bootstrap AGGregatING) trains each base estimator on a different random bootstrap sample of the training set. Random forests extend bagging to decision trees by also randomly sampling features at each split, reducing correlation among the trees and further reducing variance.
+
+**Feature importances.** A random forest can estimate feature importance as the average depth reduction caused by that feature across all trees. Scikit-Learn exposes this via `feature_importances_`.
+
+**Boosting.** Boosting trains estimators sequentially; each new estimator focuses on the instances that its predecessors misclassified. AdaBoost updates instance weights; Gradient Boosting fits each new estimator to the residual errors of the ensemble so far.
+
+**Stacking.** Stacking trains a *blender* (meta-learner) on the out-of-fold predictions of the base estimators. It can outperform simpler averaging but requires more care to prevent data leakage.
+
+## Code examples
+
+**Voting classifier (hard and soft):**
+
+```python
+from sklearn.datasets import make_moons
+from sklearn.ensemble import RandomForestClassifier, VotingClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import train_test_split
+from sklearn.svm import SVC
+
+X, y = make_moons(n_samples=500, noise=0.30, random_state=42)
+X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=42)
+
+voting_clf = VotingClassifier(
+    estimators=[
+        ('lr', LogisticRegression(random_state=42)),
+        ('rf', RandomForestClassifier(random_state=42)),
+        ('svc', SVC(random_state=42))
+    ]
+)
+voting_clf.fit(X_train, y_train)
+voting_clf.score(X_test, y_test)   # 0.912
+
+# Switch to soft voting
+voting_clf.voting = "soft"
+voting_clf.named_estimators["svc"].probability = True
+voting_clf.fit(X_train, y_train)
+voting_clf.score(X_test, y_test)   # 0.92
+```
+
+**Random Forest with feature importances:**
+
+```python
+from sklearn.ensemble import RandomForestClassifier
+
+rnd_clf = RandomForestClassifier(n_estimators=500, max_leaf_nodes=16,
+                                 n_jobs=-1, random_state=42)
+rnd_clf.fit(X_train, y_train)
+
+for name, score in zip(["x1", "x2"], rnd_clf.feature_importances_):
+    print(f"{score:.2f} {name}")
+```
+
+**Bagging classifier:**
+
+```python
+from sklearn.ensemble import BaggingClassifier
+from sklearn.tree import DecisionTreeClassifier
+
+bag_clf = BaggingClassifier(
+    DecisionTreeClassifier(), n_estimators=500,
+    max_samples=100, n_jobs=-1, random_state=42
+)
+bag_clf.fit(X_train, y_train)
+```
+
+<Tip>
+Gradient boosting is generally more accurate than random forests but harder to tune and more prone to overfitting. Use early stopping (the `n_iter_no_change` parameter in `GradientBoostingClassifier` or `XGBClassifier`'s `early_stopping_rounds`) to find the optimal number of trees automatically.
+</Tip>
+
+## Running this notebook
+
+<Steps>
+  <Step title="Open in Colab">
+    [Open in Colab](https://colab.research.google.com/github/ageron/handson-ml3/blob/main/07_ensemble_learning_and_random_forests.ipynb)
+  </Step>
+  <Step title="Install XGBoost">
+    XGBoost is not included in the standard Colab environment by default. Install it with `pip install xgboost` if needed.
+  </Step>
+  <Step title="Run cells in order">
+    All synthetic datasets are generated with `make_moons`. The MNIST-related sections at the end download the dataset via `fetch_openml`.
+  </Step>
+</Steps>
+
+## Exercises
+
+The chapter exercises ask you to explore the trade-offs between different ensemble methods on the MNIST dataset, compare feature importances from random forests and gradient boosting, and implement a stacking classifier from scratch. Solutions are in the notebook.

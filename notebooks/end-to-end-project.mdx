@@ -1,0 +1,119 @@
+---
+title: "Chapter 2: End-to-End Machine Learning Project"
+description: "A complete walkthrough of a real ML project using the California Housing dataset, covering data loading, exploration, preprocessing pipelines, and model selection with cross-validation."
+---
+
+Chapter 2 walks you through every stage of a realistic machine learning project from start to finish, using the California Housing dataset. You will download and explore the data, handle missing values and categorical features, build transformation pipelines with `Pipeline` and `ColumnTransformer`, train and evaluate several regression models, and fine-tune the best one. By the end you will have a deployable model for predicting California district median house values.
+
+## What you'll learn
+
+- How to frame a regression problem and choose a performance measure (RMSE)
+- Downloading and exploring data with pandas (`info`, `describe`, `hist`, `value_counts`)
+- Stratified train/test splitting with `StratifiedShuffleSplit` and `train_test_split`
+- Visualizing geographical data and computing correlation matrices
+- Handling missing values with `SimpleImputer` (median strategy)
+- Encoding categorical features with `OneHotEncoder`
+- Building numerical and categorical preprocessing pipelines with `Pipeline` and `make_pipeline`
+- Combining heterogeneous pipelines with `ColumnTransformer`
+- Scaling features with `StandardScaler`
+- Training and evaluating `LinearRegression`, `DecisionTreeRegressor`, and `RandomForestRegressor`
+- Cross-validating models with `cross_val_score`
+- Hyperparameter search with `GridSearchCV` and `RandomizedSearchCV`
+
+## Key concepts
+
+**The California Housing dataset.** The dataset contains 20,640 district records from the 1990 California census, each with features such as longitude, latitude, housing median age, total rooms, total bedrooms, population, households, and median income. The target variable is `median_house_value`. One column—`ocean_proximity`—is categorical, which motivates the use of `ColumnTransformer` to apply different transformations to numerical and categorical columns.
+
+**Train/test splitting.** A naive random split can produce a biased test set if the dataset has important strata. The notebook demonstrates stratified sampling on the `median_income` category so that each income stratum is proportionally represented in both the training and test sets.
+
+**Transformation pipelines.** Scikit-Learn's `Pipeline` chains multiple transformers and an optional final estimator into a single object. `ColumnTransformer` applies different pipelines to different columns—useful when a dataset has both numerical and categorical features.
+
+**Cross-validation.** `cross_val_score` performs k-fold cross-validation and returns an array of scores, one per fold. Computing the mean and standard deviation of these scores gives a more reliable estimate of model performance than a single train/test split.
+
+## Code examples
+
+**Loading the dataset:**
+
+```python
+from pathlib import Path
+import pandas as pd
+import tarfile
+import urllib.request
+
+def load_housing_data():
+    tarball_path = Path("datasets/housing.tgz")
+    if not tarball_path.is_file():
+        Path("datasets").mkdir(parents=True, exist_ok=True)
+        url = "https://github.com/ageron/data/raw/main/housing.tgz"
+        urllib.request.urlretrieve(url, tarball_path)
+    with tarfile.open(tarball_path) as housing_tarball:
+        housing_tarball.extractall(path="datasets")
+    return pd.read_csv(Path("datasets/housing/housing.csv"))
+
+housing = load_housing_data()
+```
+
+**Building a full preprocessing pipeline with `ColumnTransformer`:**
+
+```python
+from sklearn.pipeline import Pipeline, make_pipeline
+from sklearn.compose import ColumnTransformer
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+
+num_pipeline = make_pipeline(
+    SimpleImputer(strategy="median"),
+    StandardScaler()
+)
+
+cat_pipeline = make_pipeline(
+    SimpleImputer(strategy="most_frequent"),
+    OneHotEncoder(handle_unknown="ignore")
+)
+
+num_attribs = ["longitude", "latitude", "housing_median_age", "total_rooms",
+               "total_bedrooms", "population", "households", "median_income"]
+cat_attribs = ["ocean_proximity"]
+
+preprocessing = ColumnTransformer([
+    ("num", num_pipeline, num_attribs),
+    ("cat", cat_pipeline, cat_attribs),
+])
+```
+
+**Combining preprocessing with a model and cross-validating:**
+
+```python
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import cross_val_score
+
+lin_reg = make_pipeline(preprocessing, LinearRegression())
+
+lin_rmse_scores = cross_val_score(
+    lin_reg, housing, housing["median_house_value"].values,
+    scoring="neg_root_mean_squared_error", cv=10
+)
+print(-lin_rmse_scores.mean().round(0))   # ~68,687 USD
+```
+
+<Note>
+The notebook also demonstrates custom transformers that add derived features (rooms per household, bedrooms per room, population per household) to improve model accuracy.
+</Note>
+
+## Running this notebook
+
+<Steps>
+  <Step title="Open in Colab">
+    [Open in Colab](https://colab.research.google.com/github/ageron/handson-ml3/blob/main/02_end_to_end_machine_learning_project.ipynb)
+  </Step>
+  <Step title="Install dependencies">
+    The notebook requires Python ≥ 3.7 and Scikit-Learn ≥ 1.0.1. On Colab these are pre-installed. Locally, run `pip install scikit-learn pandas matplotlib`.
+  </Step>
+  <Step title="Run all cells">
+    Execute cells in order. The housing data (~1.4 MB) is downloaded automatically on the first run.
+  </Step>
+</Steps>
+
+## Exercises
+
+The chapter ends with two exercises: (1) try an `SVR` with various kernels and hyperparameters and compare results, and (2) add a transformer to the pipeline that selects only the most important attributes. Solutions are included in the notebook.

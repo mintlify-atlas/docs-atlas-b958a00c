@@ -1,0 +1,100 @@
+---
+title: "Chapter 5: Support Vector Machines"
+description: "A thorough treatment of SVMs for classification and regression, covering the large-margin intuition, soft margin, the kernel trick, and SVR with scikit-learn's SVC and LinearSVC."
+---
+
+Chapter 5 introduces Support Vector Machines (SVMs), one of the most powerful and versatile ML algorithms. You will learn the large-margin classification intuition, how to handle non-linearly separable data with soft margins and kernel functions, and how to apply SVMs to regression tasks with `SVR`.
+
+## What you'll learn
+
+- The large-margin classification intuition and support vectors
+- Hard-margin versus soft-margin classification and the `C` hyperparameter
+- Training linear SVMs with `LinearSVC` using a preprocessing pipeline
+- Non-linear SVMs: the polynomial kernel and the Gaussian RBF kernel
+- The kernel trick: fitting non-linear boundaries without explicitly computing feature maps
+- Similarity features and the intuition behind the RBF kernel
+- SVM regression with `SVR` and the `epsilon` parameter
+- Computational complexity: when to use `LinearSVC` vs. `SVC`
+
+## Key concepts
+
+**Large-margin classification.** An SVM classifier fits the widest possible street between two classes. The decision boundary is determined solely by the instances closest to the boundary—the *support vectors*. This makes SVMs robust to outliers far from the boundary.
+
+**Soft-margin classification.** Real data is rarely linearly separable. Soft-margin SVMs allow some instances to violate the margin; the `C` hyperparameter controls the trade-off. A large `C` enforces a stricter margin (low bias, higher variance); a small `C` allows more violations (higher bias, lower variance).
+
+**The kernel trick.** Adding polynomial or radial basis function (RBF) features can make a non-linearly separable dataset linearly separable. The kernel trick lets SVMs implicitly compute the dot products in a very high-dimensional feature space without ever constructing that space, keeping computation tractable.
+
+**SVR (Support Vector Regression).** SVR fits a "tube" of width 2ε around the training data; instances inside the tube do not contribute to the loss. This makes SVR insensitive to small errors and robust to outliers.
+
+## Code examples
+
+**Training a linear SVM with a preprocessing pipeline on the iris dataset:**
+
+```python
+import numpy as np
+from sklearn.datasets import load_iris
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.svm import LinearSVC
+
+iris = load_iris(as_frame=True)
+X = iris.data[["petal length (cm)", "petal width (cm)"]].values
+y = (iris.target == 2)  # Iris virginica
+
+svm_clf = make_pipeline(
+    StandardScaler(),
+    LinearSVC(C=1, dual=True, random_state=42)
+)
+svm_clf.fit(X, y)
+```
+
+**Predicting with the trained classifier:**
+
+```python
+X_new = [[5.5, 1.7], [5.0, 1.5]]
+svm_clf.predict(X_new)
+# array([ True, False])
+```
+
+**Non-linear SVM with the RBF kernel:**
+
+```python
+from sklearn.svm import SVC
+
+rbf_kernel_svm_clf = make_pipeline(
+    StandardScaler(),
+    SVC(kernel="rbf", gamma=5, C=0.001)
+)
+rbf_kernel_svm_clf.fit(X, y)
+```
+
+**SVM regression:**
+
+```python
+from sklearn.svm import SVR
+
+svr_reg = SVR(kernel="poly", degree=2, C=100, epsilon=0.1)
+svr_reg.fit(X, y)
+```
+
+<Tip>
+Always scale features before training an SVM. SVMs are sensitive to feature scales, and `StandardScaler` (or similar) is essential for good performance. The `make_pipeline` pattern shown above bundles scaling and the SVM into one object, preventing data leakage during cross-validation.
+</Tip>
+
+## Running this notebook
+
+<Steps>
+  <Step title="Open in Colab">
+    [Open in Colab](https://colab.research.google.com/github/ageron/handson-ml3/blob/main/05_support_vector_machines.ipynb)
+  </Step>
+  <Step title="Run the setup cells">
+    The first cells set matplotlib defaults and create the `images/svm` directory for saving figures.
+  </Step>
+  <Step title="Run cells in order">
+    Work through the notebook from top to bottom. Figures are generated inline.
+  </Step>
+</Steps>
+
+## Exercises
+
+The chapter exercises ask you to train a `LinearSVC` on the iris dataset, use `SVC` with an RBF kernel on the same data and compare results, and train an SVM regressor on the California housing dataset. Solutions are in the notebook.

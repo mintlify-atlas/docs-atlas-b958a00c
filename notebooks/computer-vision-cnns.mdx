@@ -1,0 +1,139 @@
+---
+title: "Deep Computer Vision with Convolutional Networks (Ch. 14)"
+description: "Master Conv2D layers, pooling, ResNet and EfficientNet transfer learning, data augmentation, and object detection concepts using Keras on image datasets."
+---
+
+Convolutional neural networks are the workhorse of modern computer vision. Chapter 14 builds from the ground up — starting with a single `Conv2D` layer applied to real images — through pooling, feature maps, and classic architectures, all the way to state-of-the-art pretrained models and practical transfer learning. You'll also get an overview of object detection (YOLO, SSD) and semantic segmentation (FCN, U-Net, DeepLab).
+
+## What you'll learn
+
+- How **convolutional layers** work: filters, feature maps, strides, and padding
+- Pooling layers: `MaxPooling2D`, `AvgPooling2D`, global variants
+- Classic CNN architectures: LeNet-5, AlexNet, VGG, GoogLeNet/Inception
+- Modern architectures: **ResNet50**, **EfficientNet**, **MobileNet**, **DenseNet**
+- **Transfer learning**: freezing base layers and fine-tuning
+- **Data augmentation** with Keras preprocessing layers: `RandomFlip`, `RandomRotation`, `RandomCrop`, `RandomContrast`
+- Depthwise separable convolutions (`DepthwiseConv2D`)
+- Object detection concepts: bounding boxes, YOLO, and SSD
+- Semantic and instance segmentation overview
+
+## Key concepts
+
+### Convolutional layers
+
+A `Conv2D` layer slides one or more small kernels across the input image, computing the dot product between the kernel and a local patch at each location. This produces a feature map that highlights wherever the corresponding pattern appears. With `padding="same"` the spatial dimensions are preserved; `padding="valid"` (the default) shrinks them. Multiple filters in the same layer each learn to detect a different pattern — edges, textures, etc. — and their feature maps are stacked along the channel dimension.
+
+### Pooling
+
+Max pooling takes the maximum value in each receptive field, achieving spatial invariance to small translations and reducing the spatial size by a factor equal to the stride (typically 2). Global average pooling reduces each feature map to a single scalar, which dramatically cuts parameter count in the fully-connected head.
+
+### Transfer learning
+
+Pre-training large networks on ImageNet (1.2M images, 1000 classes) produces feature representations that transfer remarkably well to other visual tasks. The standard recipe is:
+1. Load a pretrained model (e.g. `ResNet50`) with `include_top=False`.
+2. Freeze the base layers (`base_model.trainable = False`).
+3. Add a custom head (pooling + Dense + softmax).
+4. Train the head for a few epochs.
+5. **Fine-tune**: unfreeze the upper base layers and continue training with a low learning rate.
+
+### Data augmentation
+
+Augmentation artificially expands the training set by randomly transforming images. Keras preprocessing layers handle this inside the model graph, so augmentations are only applied during training and are consistent between CPU and GPU. Common layers include `RandomFlip`, `RandomRotation`, `RandomZoom`, and `RandomContrast`.
+
+## Code examples
+
+### Applying a Conv2D layer
+
+```python
+from sklearn.datasets import load_sample_images
+import tensorflow as tf
+
+images = load_sample_images()["images"]
+images = tf.keras.layers.CenterCrop(height=70, width=120)(images)
+images = tf.keras.layers.Rescaling(scale=1 / 255)(images)
+
+tf.random.set_seed(42)
+conv_layer = tf.keras.layers.Conv2D(filters=32, kernel_size=7)
+fmaps = conv_layer(images)
+print(fmaps.shape)  # TensorShape([2, 64, 114, 32])
+
+# With same padding
+conv_same = tf.keras.layers.Conv2D(filters=32, kernel_size=7, padding="same")
+fmaps_same = conv_same(images)
+print(fmaps_same.shape)  # TensorShape([2, 70, 120, 32])
+```
+
+### Transfer learning with EfficientNet
+
+```python
+import tensorflow as tf
+
+# Load pretrained base
+base_model = tf.keras.applications.EfficientNetB0(
+    weights="imagenet", include_top=False)
+base_model.trainable = False  # freeze base
+
+# Add custom classification head
+avg = tf.keras.layers.GlobalAveragePooling2D()(base_model.output)
+output = tf.keras.layers.Dense(10, activation="softmax")(avg)
+model = tf.keras.Model(inputs=base_model.input, outputs=output)
+
+model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
+              loss="sparse_categorical_crossentropy",
+              metrics=["accuracy"])
+```
+
+### Data augmentation pipeline
+
+```python
+data_augmentation = tf.keras.Sequential([
+    tf.keras.layers.RandomFlip(mode="horizontal"),
+    tf.keras.layers.RandomRotation(factor=0.05),
+    tf.keras.layers.RandomCrop(height=32, width=32),
+])
+
+augmented_images = data_augmentation(images, training=True)
+```
+
+### Fine-tuning the upper layers
+
+```python
+# After initial training of the head:
+for layer in base_model.layers[-20:]:
+    layer.trainable = True
+
+model.compile(
+    optimizer=tf.keras.optimizers.Adam(learning_rate=1e-5),
+    loss="sparse_categorical_crossentropy",
+    metrics=["accuracy"])
+
+history_fine = model.fit(train_dataset, epochs=10,
+                         validation_data=valid_dataset)
+```
+
+## Running this notebook
+
+<Steps>
+  <Step title="Enable a GPU">
+    Chapter 14 trains CNNs and runs large pretrained models — a GPU is strongly recommended. In Colab: **Runtime → Change runtime type → GPU**.
+  </Step>
+  <Step title="Open in Colab">
+    [Open in Colab](https://colab.research.google.com/github/ageron/handson-ml3/blob/main/14_deep_computer_vision_with_cnns.ipynb)
+  </Step>
+  <Step title="Install dependencies">
+    ```bash
+    pip install -r requirements.txt
+    ```
+  </Step>
+  <Step title="ImageNet weights download">
+    The first time you instantiate a pretrained model (e.g. ResNet50), Keras automatically downloads the ImageNet weights (~100 MB). This requires an internet connection.
+  </Step>
+</Steps>
+
+## Exercises
+
+Exercises include building a custom ResNet from scratch, implementing a data augmentation pipeline for the Flowers dataset, and comparing fine-tuning strategies. Solutions are in the notebook.
+
+<Warning>
+  This chapter can be very slow without a GPU. The notebook includes a runtime check that prints a warning if no GPU is detected and provides instructions to enable one in Colab and Kaggle.
+</Warning>

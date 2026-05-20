@@ -1,0 +1,133 @@
+---
+title: "Processing Sequences Using RNNs and 1D CNNs (Ch. 15)"
+description: "Forecast multivariate time series with SimpleRNN, LSTM, GRU, and WaveNet-style dilated 1D convolutions using real Chicago transit ridership data."
+---
+
+Sequential data — time series, text, audio, video — requires architectures that respect temporal ordering. Chapter 15 introduces recurrent neural networks (SimpleRNN, LSTM, GRU) and shows how 1D convolutional networks can also model sequences, sometimes outperforming RNNs while being faster to train. The running example is the Chicago Transit Authority daily bus and rail ridership dataset, which you'll forecast using increasingly sophisticated models, from a naive baseline through stacked LSTMs and WaveNet-style dilated convolutions.
+
+## What you'll learn
+
+- Forecasting sequences with **baseline models** and naive approaches
+- Time series stationarity and **differencing** to remove trends
+- Classical ARMA/SARIMA models with **statsmodels**
+- **SimpleRNN**: the basic recurrent cell and its limitations
+- **LSTM** (Long Short-Term Memory): cell state, gates, and long-range dependencies
+- **GRU** (Gated Recurrent Unit): the lighter alternative to LSTM
+- Stacking recurrent layers and using `return_sequences=True`
+- **1D convolutions** (`Conv1D`) for sequence modelling
+- **WaveNet**-style dilated causal convolutions
+- Multivariate time series: multiple input channels
+- Sequence-to-sequence models
+
+## Key concepts
+
+### Recurrent neural networks
+
+An RNN processes a sequence step by step, maintaining a hidden state that accumulates information about past inputs. At each time step the cell takes the current input and the previous hidden state, producing a new hidden state (and optionally an output). SimpleRNN uses a single tanh activation, which makes it vulnerable to vanishing gradients over long sequences.
+
+### LSTM and GRU
+
+LSTM introduces a **cell state** (long-term memory) alongside the hidden state, controlled by three gates: the forget gate (what to discard from the cell state), the input gate (what new information to write), and the output gate (what to expose as the hidden state). This architecture can maintain relevant information across hundreds of steps without vanishing gradients.
+
+GRU simplifies LSTM to two gates (reset and update) and merges the cell state and hidden state into one. In practice GRU is slightly faster to train and often achieves comparable performance to LSTM.
+
+### Conv1D and WaveNet
+
+1D convolutions apply a filter across the time axis, making them translation-invariant in time. Stacking `Conv1D` layers with increasing dilation rates (1, 2, 4, 8, …) creates a WaveNet-style architecture with an exponentially growing receptive field: a dilated causal conv with dilation 512 can look back 512 time steps while using only a small number of parameters. WaveNet-style networks train faster than LSTMs and can process sequences in parallel during training.
+
+### Chicago ridership dataset
+
+The dataset records daily bus and rail boardings for the Chicago Transit Authority from 2001 to 2019. The notebook downloads it automatically, computes rolling statistics, analyzes seasonality, and builds progressively better forecasting models. You'll see first-hand that a carefully tuned LSTM can beat classical ARIMA models on this real-world dataset.
+
+## Code examples
+
+### Loading the Chicago ridership data
+
+```python
+import pandas as pd
+from pathlib import Path
+import tensorflow as tf
+
+filepath = tf.keras.utils.get_file(
+    "ridership.tgz",
+    "https://github.com/ageron/data/raw/main/ridership.tgz",
+    cache_dir=".", extract=True)
+ridership_path = Path(filepath).with_name("ridership")
+
+path = ridership_path / "CTA_-_Ridership_-_Daily_Boarding_Totals.csv"
+df = pd.read_csv(path, parse_dates=["service_date"])
+df.columns = ["date", "day_type", "bus", "rail", "total"]
+df = df.sort_values("date").set_index("date")
+df = df.drop("total", axis=1).drop_duplicates()
+```
+
+### Stacked LSTM model for multivariate forecasting
+
+```python
+import tensorflow as tf
+
+tf.random.set_seed(42)
+
+model = tf.keras.Sequential([
+    tf.keras.layers.LSTM(32, return_sequences=True, input_shape=[None, 2]),
+    tf.keras.layers.LSTM(32),
+    tf.keras.layers.Dense(1)
+])
+
+model.compile(optimizer="adam", loss="mse", metrics=["mae"])
+history = model.fit(train_ds, validation_data=valid_ds, epochs=20)
+```
+
+### WaveNet-style dilated 1D convolutions
+
+```python
+model = tf.keras.Sequential()
+model.add(tf.keras.layers.InputLayer(input_shape=[None, 1]))
+
+# Stack dilated causal conv layers doubling dilation each time
+for dilation_rate in (1, 2, 4, 8, 16, 32):
+    model.add(tf.keras.layers.Conv1D(
+        filters=32, kernel_size=2, padding="causal",
+        activation="relu", dilation_rate=dilation_rate))
+
+model.add(tf.keras.layers.Conv1D(filters=1, kernel_size=1))
+model.compile(loss="mse", optimizer=tf.keras.optimizers.Adam(learning_rate=3e-4))
+```
+
+### Simple GRU baseline
+
+```python
+model = tf.keras.Sequential([
+    tf.keras.layers.GRU(32, input_shape=[None, 2]),
+    tf.keras.layers.Dense(1)
+])
+model.compile(optimizer="adam", loss="mse")
+```
+
+## Running this notebook
+
+<Steps>
+  <Step title="Enable a GPU">
+    Recurrent layers can be very slow on CPU. In Colab, select **Runtime → Change runtime type → GPU** for GPU-accelerated cuDNN implementations of LSTM and GRU.
+  </Step>
+  <Step title="Open in Colab">
+    [Open in Colab](https://colab.research.google.com/github/ageron/handson-ml3/blob/main/15_processing_sequences_using_rnns_and_cnns.ipynb)
+  </Step>
+  <Step title="Install dependencies">
+    ```bash
+    pip install -r requirements.txt
+    ```
+    The classical time series section requires `statsmodels~=0.14.0`.
+  </Step>
+  <Step title="Dataset download">
+    The Chicago ridership dataset is downloaded automatically when you run the setup cell. It is approximately 108 KB compressed.
+  </Step>
+</Steps>
+
+## Exercises
+
+Exercises include building an encoder-decoder architecture for sequence-to-sequence forecasting and experimenting with different window sizes. Solutions are at the end of the notebook.
+
+<Note>
+  The `GRU` and `LSTM` layers will only use the fast cuDNN implementation when the default values for `activation`, `recurrent_activation`, `recurrent_dropout`, `unroll`, `use_bias`, and `reset_after` are kept unchanged. Modifying these disables cuDNN and falls back to a slower TensorFlow kernel.
+</Note>

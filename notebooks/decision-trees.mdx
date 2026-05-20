@@ -1,0 +1,100 @@
+---
+title: "Chapter 6: Decision Trees"
+description: "Training, visualising, and understanding decision trees with the CART algorithm, Gini impurity vs entropy, pruning via max_depth, and decision tree regression with Scikit-Learn."
+---
+
+Chapter 6 covers decision trees—among the most interpretable ML algorithms. You will train trees for classification and regression, visualise their structure, understand the CART algorithm that builds them, and learn how to control their complexity through pruning parameters.
+
+## What you'll learn
+
+- Training a `DecisionTreeClassifier` on the iris dataset
+- Visualising a tree with `export_graphviz` and Graphviz
+- How CART builds trees: recursive binary splitting using a purity criterion
+- Gini impurity versus entropy as splitting criteria
+- Predicting class probabilities with `predict_proba`
+- Regularisation parameters: `max_depth`, `min_samples_split`, `min_samples_leaf`, and `max_leaf_nodes`
+- Instability of decision trees and their sensitivity to rotation
+- `DecisionTreeRegressor` for regression tasks
+
+## Key concepts
+
+**The CART algorithm.** CART (Classification and Regression Trees) builds trees by recursively splitting the training data. At each node it searches for the feature and threshold that produce the purest split, minimising a weighted sum of impurity in the child nodes. The process continues until a stopping criterion is met (e.g., maximum depth reached, or the node is already pure).
+
+**Gini impurity and entropy.** Gini impurity measures the probability that a randomly chosen instance would be misclassified if labelled according to the class distribution at a node. Entropy measures the average information content. In practice, both criteria produce similar trees; Gini impurity is faster to compute.
+
+**Pruning.** Unpruned decision trees overfit the training data. The most direct way to regularise a tree is to restrict its depth with `max_depth`. Other useful constraints include `min_samples_split` (minimum number of samples required to split a node) and `max_leaf_nodes` (maximum number of leaf nodes allowed).
+
+**Decision tree regression.** `DecisionTreeRegressor` works identically to the classifier but predicts a value at each leaf (the mean of training instances at that leaf) rather than a class. The same overfitting risk applies, and `max_depth` is again the primary regularisation knob.
+
+## Code examples
+
+**Training and visualising a decision tree on iris:**
+
+```python
+from sklearn.datasets import load_iris
+from sklearn.tree import DecisionTreeClassifier
+
+iris = load_iris(as_frame=True)
+X_iris = iris.data[["petal length (cm)", "petal width (cm)"]].values
+y_iris = iris.target
+
+tree_clf = DecisionTreeClassifier(max_depth=2, random_state=42)
+tree_clf.fit(X_iris, y_iris)
+```
+
+**Exporting the tree for Graphviz visualisation:**
+
+```python
+from sklearn.tree import export_graphviz
+from pathlib import Path
+
+export_graphviz(
+    tree_clf,
+    out_file=str(Path("images") / "iris_tree.dot"),
+    feature_names=["petal length (cm)", "petal width (cm)"],
+    class_names=iris.target_names,
+    rounded=True,
+    filled=True
+)
+```
+
+**Predicting class probabilities:**
+
+```python
+tree_clf.predict_proba([[5, 1.5]])
+# array([[0.   , 0.907, 0.093]])
+
+tree_clf.predict([[5, 1.5]])
+# array([1])
+```
+
+**Decision tree regressor:**
+
+```python
+from sklearn.tree import DecisionTreeRegressor
+
+tree_reg = DecisionTreeRegressor(max_depth=2, random_state=42)
+tree_reg.fit(X_iris, y_iris)
+```
+
+<Note>
+Decision trees are highly sensitive to small variations in the training data—adding or removing a single instance can produce a very different tree. This instability is one motivation for ensemble methods like random forests (Chapter 7).
+</Note>
+
+## Running this notebook
+
+<Steps>
+  <Step title="Open in Colab">
+    [Open in Colab](https://colab.research.google.com/github/ageron/handson-ml3/blob/main/06_decision_trees.ipynb)
+  </Step>
+  <Step title="Install Graphviz (optional)">
+    To render the exported `.dot` files as images, install Graphviz: `apt-get install graphviz` (Linux / Colab) or follow the [Graphviz download page](https://graphviz.org/download/). The notebook includes inline SVG renderings that work without Graphviz.
+  </Step>
+  <Step title="Run cells in order">
+    All datasets are built into Scikit-Learn (`load_iris`), so no external downloads are required.
+  </Step>
+</Steps>
+
+## Exercises
+
+The chapter exercises include training a decision tree on the moons dataset to achieve ≥ 85% accuracy, growing a random forest by hand (many trees trained on random subsets), and comparing Gini impurity and entropy on the iris dataset. Solutions are provided in the notebook.

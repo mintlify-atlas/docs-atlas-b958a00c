@@ -1,0 +1,167 @@
+---
+title: "Deploying TensorFlow Models at Scale (Ch. 19)"
+description: "Export SavedModels, query TF Serving via REST and gRPC, deploy to Vertex AI, and scale training with MirroredStrategy across multiple GPUs and machines."
+---
+
+Chapter 19 moves from research to production. You'll learn the complete lifecycle for shipping a TensorFlow model: exporting it to the SavedModel format, serving it via TensorFlow Serving's REST and gRPC APIs, deploying to Google Vertex AI for serverless predictions, running in the browser with TensorFlow.js, and scaling training across multiple GPUs and machines with TensorFlow's Distribution Strategy API. The chapter also revisits Keras Tuner for distributed hyperparameter searches and covers the PipeDream / Pathways model parallelism approaches.
+
+## What you'll learn
+
+- Exporting models in the **SavedModel** format with `model.save()`
+- Inspecting SavedModels with `saved_model_cli`
+- Installing and running **TensorFlow Serving** (Docker or native)
+- Querying TF Serving via the **REST API** (`requests`) and **gRPC API**
+- **Deploying model versions** — TF Serving automatically picks up new versions
+- Deploying to **Google Vertex AI** for managed online prediction
+- Running models in the browser with **TensorFlow.js**
+- Distributed training: **`MirroredStrategy`** (single machine, multiple GPUs)
+- **`MultiWorkerMirroredStrategy`** for multi-machine training
+- **`CentralStorageStrategy`** and **`ParameterServerStrategy`**
+- Distributed hyperparameter search with Keras Tuner
+
+## Key concepts
+
+### SavedModel format
+
+`model.save(path, save_format="tf")` exports the model as a SavedModel — a directory containing:
+- `saved_model.pb`: the model's computation graph and metadata.
+- `variables/`: a checkpoint of all weight values.
+- `assets/`: optional auxiliary files (e.g. vocabulary files for text models).
+
+The SavedModel bundles the preprocessing graph and the model graph together, so callers don't need to know about the model's internal architecture. `tf.saved_model.load()` restores the model on any platform that runs TensorFlow.
+
+### TensorFlow Serving
+
+TF Serving is a production-grade model server that monitors a versioned directory of SavedModels and serves predictions via REST (port 8501) or gRPC (port 8500). It handles multiple model versions simultaneously and can switch traffic to a new version without restarting. The REST endpoint follows the convention `/v1/models/{model_name}:predict` and accepts JSON-encoded inputs.
+
+### Distribution strategies
+
+TensorFlow's `tf.distribute` API abstracts the communication between accelerators, letting you scale a training script by wrapping model creation and training in a strategy scope.
+
+- **`MirroredStrategy`**: replicates the model on all available GPUs on one machine; each GPU processes a different shard of the mini-batch and gradients are reduced via all-reduce (NCCL by default).
+- **`MultiWorkerMirroredStrategy`**: extends MirroredStrategy to multiple machines; each machine runs one worker and gradients are communicated over the network.
+- **`TPUStrategy`**: equivalent strategy for Google Cloud TPUs.
+
+Using a distribution strategy requires no changes to the model architecture — only the model creation and `model.compile()` calls must be inside the strategy's `scope()` context manager.
+
+## Code examples
+
+### Exporting a model as SavedModel
+
+```python
+from pathlib import Path
+import tensorflow as tf
+
+# Build and train an MNIST model
+mnist = tf.keras.datasets.mnist.load_data()
+(X_train_full, y_train_full), (X_test, y_test) = mnist
+X_valid, X_train = X_train_full[:5000], X_train_full[5000:]
+y_valid, y_train = y_train_full[:5000], y_train_full[5000:]
+
+tf.random.set_seed(42)
+model = tf.keras.Sequential([
+    tf.keras.layers.Flatten(input_shape=[28, 28], dtype=tf.uint8),
+    tf.keras.layers.Rescaling(scale=1 / 255),
+    tf.keras.layers.Dense(100, activation="relu"),
+    tf.keras.layers.Dense(10, activation="softmax")
+])
+model.compile(loss="sparse_categorical_crossentropy",
+              optimizer=tf.keras.optimizers.SGD(learning_rate=1e-2),
+              metrics=["accuracy"])
+model.fit(X_train, y_train, epochs=10, validation_data=(X_valid, y_valid))
+
+# Export as SavedModel (versioned directory for TF Serving)
+model_name = "my_mnist_model"
+model_version = "0001"
+model_path = Path(model_name) / model_version
+model.save(model_path, save_format="tf")
+```
+
+### Starting TF Serving with Docker
+
+```bash
+docker pull tensorflow/serving
+
+docker run -it --rm \
+    -v "/path/to/my_mnist_model:/models/my_mnist_model" \
+    -p 8500:8500 -p 8501:8501 \
+    -e MODEL_NAME=my_mnist_model \
+    tensorflow/serving
+```
+
+### Querying TF Serving via REST
+
+```python
+import json, requests, numpy as np
+
+X_new = X_test[:3]  # 3 new digit images
+request_json = json.dumps({
+    "signature_name": "serving_default",
+    "instances": X_new.tolist(),
+})
+
+server_url = "http://localhost:8501/v1/models/my_mnist_model:predict"
+response = requests.post(server_url, data=request_json)
+response.raise_for_status()
+
+y_proba = np.array(response.json()["predictions"])
+print(y_proba.round(2))
+# [[0.   0.   0.   0.   0.   0.   0.   1.   0.   0.  ]
+#  [0.   0.   0.99 0.01 0.   0.   0.   0.   0.   0.  ]
+#  [0.   0.97 0.01 0.   0.   0.   0.   0.01 0.   0.  ]]
+```
+
+### Multi-GPU training with MirroredStrategy
+
+```python
+import tensorflow as tf
+
+strategy = tf.distribute.MirroredStrategy()
+print(f"Number of devices: {strategy.num_replicas_in_sync}")
+
+with strategy.scope():
+    model = tf.keras.Sequential([
+        tf.keras.layers.Flatten(input_shape=[28, 28]),
+        tf.keras.layers.Dense(300, activation="relu"),
+        tf.keras.layers.Dense(100, activation="relu"),
+        tf.keras.layers.Dense(10, activation="softmax")
+    ])
+    model.compile(loss="sparse_categorical_crossentropy",
+                  optimizer="nadam",
+                  metrics=["accuracy"])
+
+# Training is identical — the strategy handles gradient synchronisation
+model.fit(X_train, y_train, epochs=10,
+          validation_data=(X_valid, y_valid))
+```
+
+## Running this notebook
+
+<Steps>
+  <Step title="Install Google Cloud SDK (optional)">
+    The Vertex AI sections require `google-cloud-aiplatform~=1.36.2` and a GCP project. Install it with:
+    ```bash
+    pip install google-cloud-aiplatform google-cloud-storage
+    ```
+    Skip these sections if you don't have a GCP account.
+  </Step>
+  <Step title="Open in Colab">
+    [Open in Colab](https://colab.research.google.com/github/ageron/handson-ml3/blob/main/19_training_and_deploying_at_scale.ipynb)
+
+    **Note**: On Colab you must restart the Runtime after installing `google-cloud-aiplatform`.
+  </Step>
+  <Step title="Install TF Serving">
+    On Colab the notebook installs TF Serving automatically. Locally, use Docker (see the Docker command above) or install the native binary from the TensorFlow Serving APT repository.
+  </Step>
+  <Step title="Keras 2 compatibility">
+    This chapter sets `TF_USE_LEGACY_KERAS=1` and imports `tf_keras`. Set this environment variable before any `import tensorflow` call.
+  </Step>
+</Steps>
+
+## Exercises
+
+Exercises include deploying a model to Google Vertex AI, writing a client that calls the gRPC endpoint, implementing a `MultiWorkerMirroredStrategy` training script, and using Keras Tuner in distributed mode. Solutions are in the notebook.
+
+<Tip>
+  When using `MirroredStrategy`, the effective batch size is `batch_size_per_replica × num_replicas`. Scale the learning rate proportionally (e.g. multiply by `num_replicas`) to maintain the same training dynamics as single-GPU training.
+</Tip>

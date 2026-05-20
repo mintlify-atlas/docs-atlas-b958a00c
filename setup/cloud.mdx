@@ -1,0 +1,111 @@
+---
+title: "Run notebooks on Colab, Kaggle, Binder, or Deepnote"
+description: "Compare Google Colab, Kaggle, Binder, and Deepnote for running Hands-On ML notebooks — free GPU access, persistence, and tradeoffs explained for each platform."
+---
+
+All Hands-On ML notebooks can be run directly in the browser on several cloud platforms without installing any software. This page covers each option in detail so you can choose the one that suits your workflow. Google Colab is the recommended starting point for most readers.
+
+<Tabs>
+  <Tab title="Google Colab (recommended)">
+    Google Colab is the platform the author recommends. It provides a hosted Jupyter environment on Google's infrastructure, with optional free access to GPU and TPU hardware accelerators. All you need is a Google account.
+
+    **Open the notebooks:**
+    [https://colab.research.google.com/github/ageron/handson-ml3/blob/main/](https://colab.research.google.com/github/ageron/handson-ml3/blob/main/)
+
+    Clicking that link opens Colab's notebook browser for the repository. Select any chapter notebook to open it. Colab installs the required dependencies in the background when you run the first cell.
+
+    <Warning>
+      Colab provides a **temporary environment**. Your runtime will be disconnected after a period of inactivity or after a maximum session length, and all files, installed packages, and downloaded data will be deleted. If you want to keep your work, download any modified notebooks or save them to Google Drive before your session ends.
+    </Warning>
+
+    **When to choose Colab:**
+    - You want to get started immediately with no setup
+    - You need free GPU access for the deep learning chapters (chapters 10–19)
+    - You are already working in the Google ecosystem (Drive, GCP)
+    - You want the most tested and supported cloud option for this repository
+  </Tab>
+  <Tab title="Kaggle">
+    Kaggle Notebooks offer free GPU access (up to 30 hours per week) and persistent storage tied to your Kaggle account. The handson-ml3 notebooks are available directly on the Kaggle platform.
+
+    **Open the notebooks:**
+    [https://homl.info/kaggle3/](https://homl.info/kaggle3/)
+
+    <Note>
+      Kaggle has not been fully tested with every notebook in this repository. Most code runs correctly, but you may encounter minor environment differences compared to Colab or a local installation.
+    </Note>
+
+    **When to choose Kaggle:**
+    - You already have a Kaggle account and prefer that ecosystem
+    - You want persistent notebook storage without Google Drive
+    - You need GPU access and have used up your Colab quota
+  </Tab>
+  <Tab title="Binder">
+    Binder builds a live Jupyter environment directly from the GitHub repository. No account or login is required.
+
+    **Launch:**
+    [https://mybinder.org/v2/gh/ageron/handson-ml3/HEAD?filepath=%2Findex.ipynb](https://mybinder.org/v2/gh/ageron/handson-ml3/HEAD?filepath=%2Findex.ipynb)
+
+    <Note>
+      Binder sessions are fully temporary and can take several minutes to start while the environment is built. It has not been fully tested with every notebook. Binder does not provide GPU access.
+    </Note>
+
+    **When to choose Binder:**
+    - You want to browse or demonstrate notebooks without any account sign-up
+    - You do not need GPU access or persistent storage
+    - You are okay with potentially slow startup times
+  </Tab>
+  <Tab title="Deepnote">
+    Deepnote is a collaborative notebook platform with persistent storage and real-time collaboration features.
+
+    **Launch:**
+    [https://homl.info/deepnote3/](https://homl.info/deepnote3/)
+
+    <Note>
+      Deepnote has not been fully tested with every notebook in this repository. You may encounter environment differences.
+    </Note>
+
+    **When to choose Deepnote:**
+    - You want to collaborate on notebooks with a team in real time
+    - You prefer a more polished notebook IDE experience
+    - You need persistent storage across sessions
+  </Tab>
+</Tabs>
+
+## Platform comparison
+
+| Feature | Colab | Kaggle | Binder | Deepnote |
+|---------|-------|--------|--------|----------|
+| Free tier | Yes | Yes | Yes | Yes (limited) |
+| GPU access | Yes (free) | Yes (30 h/week) | No | Yes (paid) |
+| Session persistence | No (temporary) | Yes | No (temporary) | Yes |
+| Account required | Google | Kaggle | No | Deepnote |
+| Tested with this repo | Yes | Partial | Partial | Partial |
+| Startup time | Fast | Fast | Slow | Fast |
+
+## Tips for cloud usage
+
+<Note>
+  The first cell of each notebook typically installs or checks for required packages. Run it even if Colab or Kaggle appear to have the libraries installed — the cell handles version pinning.
+</Note>
+
+- **Save your work regularly.** On temporary platforms (Colab, Binder), download your notebook or sync to Google Drive after making changes.
+- **GPU runtime in Colab.** To enable a GPU, go to **Runtime > Change runtime type** and select **T4 GPU**. Free GPU access is subject to availability and usage limits.
+- **Data downloads.** Notebooks that download datasets (e.g., chapters 2, 15) will re-download each session on temporary platforms. This is expected behavior.
+
+## Viewing notebooks without running code
+
+If you only want to read the notebooks without executing any cells, you can view a static render:
+
+- [nbviewer](https://nbviewer.jupyter.org/github/ageron/handson-ml3/blob/main/index.ipynb) — renders notebooks with correct math equation formatting
+- [GitHub's built-in viewer](https://github.com/ageron/handson-ml3/blob/main/index.ipynb) — works for smaller notebooks, but may fail to load large ones and does not always render math correctly
+
+## Ready to install locally?
+
+<CardGroup cols={2}>
+  <Card title="Local installation" icon="download" href="/setup/installation">
+    Full walkthrough for Anaconda, the homl3 environment, and GPU setup
+  </Card>
+  <Card title="Docker setup" icon="docker" href="/setup/docker">
+    Run notebooks in an isolated container with docker-compose
+  </Card>
+</CardGroup>
